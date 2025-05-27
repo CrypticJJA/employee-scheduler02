@@ -72,6 +72,27 @@
             background: #f0f9ff;
             border-color: #3b82f6;
         }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success { background: #10b981; }
+        .notification.error { background: #ef4444; }
+        .notification.info { background: #3b82f6; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
@@ -82,6 +103,26 @@
                 Multi-Shift Scheduling System
             </h1>
             <p class="text-gray-600">Manage your team shifts with intelligent scheduling</p>
+        </div>
+
+        <!-- Quick Actions Bar -->
+        <div class="bg-white rounded-xl shadow-lg p-4 mb-6 flex flex-wrap gap-3 justify-center">
+            <button onclick="exportData()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm font-medium">
+                📊 Export Data
+            </button>
+            <label class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium cursor-pointer">
+                📁 Import Data
+                <input type="file" accept=".json" onchange="importData(event)" class="hidden">
+            </label>
+            <button onclick="generateScheduleReport()" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors text-sm font-medium">
+                📋 Generate Report
+            </button>
+            <button onclick="autoAssignShifts()" class="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium">
+                🤖 Auto Assign
+            </button>
+            <button onclick="resetAllData()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm font-medium">
+                🔄 Reset All
+            </button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -141,28 +182,31 @@
                         <div class="shift-type-card p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition-all" data-shift="night">
                             <div class="flex items-center gap-3">
                                 <div class="w-12 h-12 shift-night rounded-lg flex items-center justify-center text-white text-xl">🌙</div>
-                                <div>
+                                <div class="flex-1">
                                     <h3 class="font-semibold text-gray-800">Night Shift</h3>
                                     <p class="text-sm text-gray-600">22:30 - 06:30</p>
                                 </div>
+                                <div class="text-sm text-gray-500" id="nightCount">0 assigned</div>
                             </div>
                         </div>
                         <div class="shift-type-card p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-orange-500 transition-all" data-shift="morning">
                             <div class="flex items-center gap-3">
                                 <div class="w-12 h-12 shift-morning rounded-lg flex items-center justify-center text-white text-xl">☀️</div>
-                                <div>
+                                <div class="flex-1">
                                     <h3 class="font-semibold text-gray-800">Morning Shift</h3>
                                     <p class="text-sm text-gray-600">06:30 - 14:30</p>
                                 </div>
+                                <div class="text-sm text-gray-500" id="morningCount">0 assigned</div>
                             </div>
                         </div>
                         <div class="shift-type-card p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-green-500 transition-all" data-shift="late">
                             <div class="flex items-center gap-3">
                                 <div class="w-12 h-12 shift-late rounded-lg flex items-center justify-center text-white text-xl">🌆</div>
-                                <div>
+                                <div class="flex-1">
                                     <h3 class="font-semibold text-gray-800">Late Shift</h3>
                                     <p class="text-sm text-gray-600">14:30 - 22:30</p>
                                 </div>
+                                <div class="text-sm text-gray-500" id="lateCount">0 assigned</div>
                             </div>
                         </div>
                     </div>
@@ -172,9 +216,14 @@
                 <div id="availableEmployees" class="hidden animate-fade-in">
                     <div class="flex items-center justify-between mb-4">
                         <label class="text-sm font-medium text-gray-700">Available Employees</label>
-                        <button id="assignAllBtn" class="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                            Assign All
-                        </button>
+                        <div class="flex gap-2">
+                            <button id="smartAssignBtn" class="text-sm bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                                🧠 Smart Assign
+                            </button>
+                            <button id="assignAllBtn" class="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                Assign All
+                            </button>
+                        </div>
                     </div>
                     <div id="employeesList" class="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto"></div>
                 </div>
@@ -223,11 +272,16 @@
             </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="mt-8 text-center">
-            <button onclick="resetAllData()" class="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition-colors font-medium">
-                🔄 Reset All Data
-            </button>
+        <!-- Employee Management Panel -->
+        <div class="mt-8 bg-white rounded-2xl shadow-xl p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                Employee Statistics
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="employeeStats"></div>
         </div>
     </div>
 
@@ -283,6 +337,20 @@
                 totalShifts: 0,
                 shiftBreakdown: { night: 0, morning: 0, late: 0 }
             }));
+        }
+
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => document.body.removeChild(notification), 300);
+            }, 3000);
         }
 
         // Calendar Functions
@@ -352,11 +420,9 @@
 
         function selectDate(date) {
             if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
-                // Start new selection
                 selectedStartDate = new Date(date);
                 selectedEndDate = null;
             } else {
-                // Complete range selection
                 if (date < selectedStartDate) {
                     selectedEndDate = selectedStartDate;
                     selectedStartDate = new Date(date);
@@ -370,25 +436,9 @@
             updateAvailableEmployees();
             updateScheduleOverview();
             updateSummaryStats();
-
-            document.querySelectorAll('.shift-type-card').forEach(card => {
-                    card.classList.remove('border-blue-500', 'border-orange-500', 'border-green-500', 'bg-blue-50', 'bg-orange-50', 'bg-green-50');
-                    card.classList.add('border-gray-200');
-                });
-            document.getElementById('availableEmployees').classList.add('hidden');
-            alert('All data has been reset successfully!');
+            updateShiftCounts();
         }
-        function setupCalendarNavigation() {
-            document.getElementById('prevMonth').addEventListener('click', () => {
-                currentDate.setMonth(currentDate.getMonth() - 1);
-                renderCalendar();
-            });
 
-            document.getElementById('nextMonth').addEventListener('click', () => {
-                currentDate.setMonth(currentDate.getMonth() + 1);
-                renderCalendar();
-            });
-        }
         function updateSelectedRange() {
             const rangeDiv = document.getElementById('selectedRange');
             const rangeText = document.getElementById('rangeText');
@@ -405,24 +455,28 @@
             }
         }
 
-        // Initialize Application
-        function initializeApp() {
-            // Load existing data or initialize with defaults
-            if (!loadData()) {
-                initializeEmployees();
-            }
+        // Calendar Navigation
+        function setupCalendarNavigation() {
+            document.getElementById('prevMonth').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+
+            document.getElementById('nextMonth').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
+        }
 
         // Shift Selection
         function setupShiftSelection() {
             document.querySelectorAll('.shift-type-card').forEach(card => {
                 card.addEventListener('click', () => {
-                    // Remove active state from all cards
                     document.querySelectorAll('.shift-type-card').forEach(c => {
                         c.classList.remove('border-blue-500', 'border-orange-500', 'border-green-500', 'bg-blue-50', 'bg-orange-50', 'bg-green-50');
                         c.classList.add('border-gray-200');
                     });
 
-                    // Add active state to selected card
                     const shift = card.dataset.shift;
                     selectedShift = shift;
                     
@@ -480,11 +534,15 @@
                 employeesList.appendChild(empDiv);
             });
 
-            // Assign All button
+            // Assign buttons
             document.getElementById('assignAllBtn').onclick = () => {
                 availableEmployees.forEach(emp => {
                     assignEmployeeToShift(emp.name, dateRange, selectedShift);
                 });
+            };
+
+            document.getElementById('smartAssignBtn').onclick = () => {
+                smartAssignEmployees(dateRange, selectedShift);
             };
         }
 
@@ -513,6 +571,7 @@
         }
 
         function assignEmployeeToShift(employeeName, dateRange, shiftType) {
+            let assignedCount = 0;
             dateRange.forEach(date => {
                 if (!scheduleData.shifts[shiftType].assignments[date]) {
                     scheduleData.shifts[shiftType].assignments[date] = [];
@@ -520,8 +579,9 @@
                 
                 if (!scheduleData.shifts[shiftType].assignments[date].includes(employeeName)) {
                     scheduleData.shifts[shiftType].assignments[date].push(employeeName);
+                    assignedCount++;
                     
-                    // Update employee stats
+                    
                     const employee = scheduleData.employees.find(emp => emp.name === employeeName);
                     if (employee) {
                         employee.totalShifts++;
@@ -530,21 +590,51 @@
                 }
             });
 
-            saveData();
-            updateAvailableEmployees();
-            updateScheduleOverview();
-            updateSummaryStats();
+            if (assignedCount > 0) {
+                showNotification(`${employeeName} assigned to ${assignedCount} ${shiftType} shift(s)`, 'success');
+
+            // CONTINUATION FROM: showNotification(`${employeeName} assigned to ${assignedCount} ${shiftType} shift(s)`, 'success');
+
+                updateAvailableEmployees();
+                updateScheduleOverview();
+                updateSummaryStats();
+                updateShiftCounts();
+                updateEmployeeStats();
+            }
         }
 
-        // Schedule Overview
-        function setupScheduleTabs() {
+        function smartAssignEmployees(dateRange, shiftType) {
+            const availableEmployees = getAvailableEmployees(dateRange, shiftType);
+            const employeesPerDay = Math.ceil(availableEmployees.length / dateRange.length);
+            
+            // Sort employees by total shifts (ascending) to balance workload
+            availableEmployees.sort((a, b) => a.totalShifts - b.totalShifts);
+            
+            let assignmentIndex = 0;
+            dateRange.forEach(date => {
+                for (let i = 0; i < Math.min(employeesPerDay, availableEmployees.length - assignmentIndex); i++) {
+                    const employee = availableEmployees[assignmentIndex + i];
+                    assignEmployeeToShift(employee.name, [date], shiftType);
+                }
+                assignmentIndex += employeesPerDay;
+                if (assignmentIndex >= availableEmployees.length) assignmentIndex = 0;
+            });
+            
+            showNotification(`Smart assignment completed for ${shiftType} shift`, 'success');
+        }
+
+        // Schedule Overview Functions
+        function setupShiftTabs() {
             document.querySelectorAll('.shift-tab').forEach(tab => {
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.shift-tab').forEach(t => {
-                        t.classList.remove('active', 'bg-white', 'shadow-sm');
+                        t.classList.remove('active', 'bg-white', 'text-blue-600', 'shadow-sm');
+                        t.classList.add('text-gray-600');
                     });
                     
-                    tab.classList.add('active', 'bg-white', 'shadow-sm');
+                    tab.classList.add('active', 'bg-white', 'text-blue-600', 'shadow-sm');
+                    tab.classList.remove('text-gray-600');
+                    
                     activeTab = tab.dataset.shift;
                     updateScheduleOverview();
                 });
@@ -552,293 +642,382 @@
         }
 
         function updateScheduleOverview() {
-            const container = document.getElementById('scheduleContent');
-            const assignments = scheduleData.shifts[activeTab].assignments;
+            const scheduleContent = document.getElementById('scheduleContent');
+            const shiftData = scheduleData.shifts[activeTab];
             
-            container.innerHTML = '';
-
-            if (Object.keys(assignments).length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-8 text-gray-500">
-                        <div class="text-4xl mb-2">${scheduleData.shifts[activeTab].icon}</div>
-                        <p>No assignments for ${scheduleData.shifts[activeTab].name}</p>
+            scheduleContent.innerHTML = '';
+            
+            const sortedDates = Object.keys(shiftData.assignments).sort();
+            
+            if (sortedDates.length === 0) {
+                scheduleContent.innerHTML = `
+                    <div class="text-center py-12 text-gray-500">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <p class="text-lg font-medium mb-2">No ${shiftData.name} assignments yet</p>
+                        <p class="text-sm">Select dates and assign employees to get started</p>
                     </div>
                 `;
                 return;
             }
-
-            Object.keys(assignments).sort().forEach(date => {
-                const employeeList = assignments[date];
-                if (employeeList.length === 0) return;
-
+            
+            sortedDates.forEach(date => {
+                const assignments = shiftData.assignments[date] || [];
+                const dateObj = new Date(date + 'T00:00:00');
+                
                 const dateDiv = document.createElement('div');
-                dateDiv.className = 'bg-gray-50 rounded-lg p-4';
+                dateDiv.className = 'bg-gray-50 rounded-lg p-4 border border-gray-200';
                 dateDiv.innerHTML = `
                     <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-semibold text-gray-800">${new Date(date).toLocaleDateString()}</h3>
-                        <span class="text-sm text-gray-600">${employeeList.length} assigned</span>
+                        <h3 class="font-semibold text-gray-800">
+                            ${dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                        </h3>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-600">${assignments.length} assigned</span>
+                            <button class="text-red-500 hover:text-red-700 text-sm font-medium" onclick="clearDateAssignments('${date}', '${activeTab}')">
+                                Clear All
+                            </button>
+                        </div>
                     </div>
-                    <div class="flex flex-wrap gap-2">
-                        ${employeeList.map(name => `
-                            <span class="bg-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
-                                ${name}
-                                <button onclick="removeAssignment('${date}', '${activeTab}', '${name}')" 
-                                        class="text-red-500 hover:text-red-700 text-xs">
-                                    ×
-                                </button>
-                            </span>
-                        `).join('')}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        ${assignments.map(empName => {
+                            const employee = scheduleData.employees.find(e => e.name === empName);
+                            return `
+                                <div class="flex items-center justify-between bg-white p-2 rounded border">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                                            ${empName.charAt(0)}
+                                        </div>
+                                        <span class="text-sm font-medium">${empName}</span>
+                                        <span class="text-xs text-gray-500">Group ${employee?.group || 'N/A'}</span>
+                                    </div>
+                                    <button class="text-red-500 hover:text-red-700 text-xs" onclick="removeEmployeeFromShift('${empName}', '${date}', '${activeTab}')">
+                                        Remove
+                                    </button>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 `;
-                container.appendChild(dateDiv);
+                
+                scheduleContent.appendChild(dateDiv);
             });
         }
 
-        function removeAssignment(date, shiftType, employeeName) {
-            const assignments = scheduleData.shifts[shiftType].assignments[date];
-            const index = assignments.indexOf(employeeName);
+        function clearDateAssignments(date, shiftType) {
+            const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
+            
+            assignments.forEach(empName => {
+                const employee = scheduleData.employees.find(emp => emp.name === empName);
+                if (employee) {
+                    employee.totalShifts--;
+                    employee.shiftBreakdown[shiftType]--;
+                }
+            });
+            
+            delete scheduleData.shifts[shiftType].assignments[date];
+            
+            updateScheduleOverview();
+            updateSummaryStats();
+            updateShiftCounts();
+            updateEmployeeStats();
+            updateAvailableEmployees();
+            
+            showNotification(`Cleared all assignments for ${new Date(date + 'T00:00:00').toLocaleDateString()}`, 'info');
+        }
+
+        function removeEmployeeFromShift(empName, date, shiftType) {
+            const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
+            const index = assignments.indexOf(empName);
             
             if (index > -1) {
                 assignments.splice(index, 1);
                 
-                // Update employee stats
-                const employee = scheduleData.employees.find(emp => emp.name === employeeName);
+                const employee = scheduleData.employees.find(emp => emp.name === empName);
                 if (employee) {
-                    employee.totalShifts = Math.max(0, employee.totalShifts - 1);
-                    employee.shiftBreakdown[shiftType] = Math.max(0, employee.shiftBreakdown[shiftType] - 1);
+                    employee.totalShifts--;
+                    employee.shiftBreakdown[shiftType]--;
                 }
                 
-                saveData();
+                if (assignments.length === 0) {
+                    delete scheduleData.shifts[shiftType].assignments[date];
+                }
+                
                 updateScheduleOverview();
-                updateAvailableEmployees();
                 updateSummaryStats();
+                updateShiftCounts();
+                updateEmployeeStats();
+                updateAvailableEmployees();
+                
+                showNotification(`${empName} removed from shift`, 'info');
             }
         }
 
-        // Summary Statistics
+        // Statistics Functions
         function updateSummaryStats() {
             const totalEmployees = scheduleData.employees.length;
-            const totalAssignments = scheduleData.employees.reduce((sum, emp) => sum + emp.totalShifts, 0);
+            const totalAssignments = Object.values(scheduleData.shifts).reduce((total, shift) => {
+                return total + Object.values(shift.assignments).reduce((shiftTotal, assignments) => {
+                    return shiftTotal + assignments.length;
+                }, 0);
+            }, 0);
+            
             const avgShifts = totalEmployees > 0 ? (totalAssignments / totalEmployees).toFixed(1) : 0;
-
+            
             document.getElementById('totalEmployees').textContent = totalEmployees;
             document.getElementById('totalAssignments').textContent = totalAssignments;
             document.getElementById('avgShifts').textContent = avgShifts;
         }
 
-        // Data Persistence
-        function saveData() {
-            const dataToSave = JSON.stringify(scheduleData);
-            const compressedData = btoa(dataToSave);
-            document.cookie = `scheduleData=${compressedData}; expires=${new Date(Date.now() + 30*24*60*60*1000).toUTCString()}; path=/`;
+        function updateShiftCounts() {
+            Object.keys(scheduleData.shifts).forEach(shiftType => {
+                const count = Object.values(scheduleData.shifts[shiftType].assignments).reduce((total, assignments) => {
+                    return total + assignments.length;
+                }, 0);
+                document.getElementById(`${shiftType}Count`).textContent = `${count} assigned`;
+            });
         }
 
-        function loadData() {
-            const cookies = document.cookie.split(';').map(c => c.trim());
-            const dataCookie = cookies.find(c => c.startsWith('scheduleData='));
+        function updateEmployeeStats() {
+            const statsContainer = document.getElementById('employeeStats');
+            statsContainer.innerHTML = '';
             
-            if (dataCookie) {
-                try {
-                    const compressedData = dataCookie.split('=')[1];
-                    const decompressedData = atob(compressedData);
-                    scheduleData = JSON.parse(decompressedData);
-                    return true;
-                } catch (e) {
-                    console.warn('Failed to load saved data:', e);
-                }
-            }
-            return false;
-        }
-
-        function resetAllData() {
-            if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
-                document.cookie = 'scheduleData=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                initializeEmployees();
-                scheduleData.shifts.night.assignments = {};
-                scheduleData.shifts.morning.assignments = {};
-                scheduleData.shifts.late.assignments = {};
+            const sortedEmployees = [...scheduleData.employees].sort((a, b) => b.totalShifts - a.totalShifts);
+            
+            sortedEmployees.forEach(emp => {
+                const statCard = document.createElement('div');
+                statCard.className = 'bg-gray-50 rounded-lg p-4 border border-gray-200';
+                statCard.innerHTML = `
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                            ${emp.name.charAt(0)}
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">${emp.name}</h3>
+                            <p class="text-sm text-gray-600">Group ${emp.group}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span>Total Shifts:</span>
+                            <span class="font-semibold">${emp.totalShifts}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-xs">
+                            <div class="text-center">
+                                <div class="font-semibold text-blue-600">${emp.shiftBreakdown.night}</div>
+                                <div class="text-gray-500">Night</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-orange-600">${emp.shiftBreakdown.morning}</div>
+                                <div class="text-gray-500">Morning</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-green-600">${emp.shiftBreakdown.late}</div>
+                                <div class="text-gray-500">Late</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
                 
-                selectedStartDate = null;
-                selectedEndDate = null;
-                selectedShift = null;
-                
-                renderCalendar();
-                updateSelectedRange();
-                updateAvailableEmployees
-
-            updateAvailableEmployees();
-                updateScheduleOverview();
-                updateSummaryStats();
-                
-                // Reset UI state
-                document.querySelectorAll('.shift-type-card').forEach(card => {
-                    card.classList.remove('border-blue-500', 'border-orange-500', 'border-green-500', 'bg-blue-50', 'bg-orange-50', 'bg-green-50');
-                    card.classList.add('border-gray-200');
-                });
-                
-                document.getElementById('availableEmployees').classList.add('hidden');
-                
-                alert('All data has been reset successfully!');
-            }
-        }
-
-        // Calendar Navigation
-        function setupCalendarNavigation() {
-            document.getElementById('prevMonth').addEventListener('click', () => {
-                currentDate.setMonth(currentDate.getMonth() - 1);
-                renderCalendar();
-            });
-
-            document.getElementById('nextMonth').addEventListener('click', () => {
-                currentDate.setMonth(currentDate.getMonth() + 1);
-                renderCalendar();
+                statsContainer.appendChild(statCard);
             });
         }
 
-        // Initialize Application
-        function initializeApp() {
-            // Load existing data or initialize with defaults
-            if (!loadData()) {
-                initializeEmployees();
-            }
-
-            // Setup event listeners
-            setupCalendarNavigation();
-            setupShiftSelection();
-            setupScheduleTabs();
-
-            // Initial render
-            renderCalendar();
-            updateScheduleOverview();
-            updateSummaryStats();
-
-            // Set initial active tab
-            document.querySelector('.shift-tab.active').classList.add('bg-white', 'shadow-sm');
-        }
-
-        // Export/Import Functions
+        // Data Management Functions
         function exportData() {
-            const dataStr = JSON.stringify(scheduleData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
+            const dataToExport = {
+                ...scheduleData,
+                exportDate: new Date().toISOString(),
+                workingDays: workingDays
+            };
             
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `schedule-data-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
+            const downloadElement = document.createElement('a');
+            downloadElement.setAttribute("href", dataStr);
+            downloadElement.setAttribute("download", `schedule_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadElement);
+            downloadElement.click();
+            document.body.removeChild(downloadElement);
+            
+            showNotification('Schedule data exported successfully', 'success');
         }
 
         function importData(event) {
             const file = event.target.files[0];
             if (!file) return;
-
+            
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
                     
-                    // Validate data structure
                     if (importedData.employees && importedData.shifts) {
-                        scheduleData = importedData;
-                        saveData();
+                        scheduleData = {
+                            employees: importedData.employees,
+                            shifts: importedData.shifts
+                        };
                         
-                        // Refresh UI
-                        renderCalendar();
                         updateScheduleOverview();
                         updateSummaryStats();
+                        updateShiftCounts();
+                        updateEmployeeStats();
                         updateAvailableEmployees();
                         
-                        alert('Data imported successfully!');
+                        showNotification('Schedule data imported successfully', 'success');
                     } else {
-                        throw new Error('Invalid data format');
+                        throw new Error('Invalid file format');
                     }
                 } catch (error) {
-                    alert('Error importing data: ' + error.message);
+                    showNotification('Error importing data: Invalid file format', 'error');
                 }
             };
             reader.readAsText(file);
+            
+            // Reset file input
+            event.target.value = '';
         }
 
-        // Utility Functions
         function generateScheduleReport() {
             let report = "SHIFT SCHEDULE REPORT\n";
-            report += "===================\n\n";
+            report += "=".repeat(50) + "\n";
+            report += `Generated: ${new Date().toLocaleString()}\n\n`;
             
-            ['night', 'morning', 'late'].forEach(shiftType => {
+            // Summary
+            report += "SUMMARY:\n";
+            report += `-`.repeat(20) + "\n";
+            report += `Total Employees: ${scheduleData.employees.length}\n`;
+            report += `Total Assignments: ${Object.values(scheduleData.shifts).reduce((total, shift) => {
+                return total + Object.values(shift.assignments).reduce((shiftTotal, assignments) => {
+                    return shiftTotal + assignments.length;
+                }, 0);
+            }, 0)}\n\n`;
+            
+            // Each shift type
+            Object.keys(scheduleData.shifts).forEach(shiftType => {
                 const shift = scheduleData.shifts[shiftType];
-                report += `${shift.name} (${shift.time})\n`;
-                report += "-".repeat(shift.name.length + shift.time.length + 3) + "\n";
+                report += `${shift.name.toUpperCase()} (${shift.time}):\n`;
+                report += `-`.repeat(30) + "\n";
                 
-                const assignments = shift.assignments;
-                if (Object.keys(assignments).length === 0) {
+                const sortedDates = Object.keys(shift.assignments).sort();
+                if (sortedDates.length === 0) {
                     report += "No assignments\n\n";
                 } else {
-                    Object.keys(assignments).sort().forEach(date => {
-                        if (assignments[date].length > 0) {
-                            report += `${new Date(date).toLocaleDateString()}: ${assignments[date].join(', ')}\n`;
-                        }
+                    sortedDates.forEach(date => {
+                        const dateObj = new Date(date + 'T00:00:00');
+                        report += `${dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}: `;
+                        report += shift.assignments[date].join(', ') + "\n";
                     });
                     report += "\n";
                 }
             });
             
-            report += "EMPLOYEE SUMMARY\n";
-            report += "===============\n";
-            scheduleData.employees.forEach(emp => {
-                report += `${emp.name} (Group ${emp.group}): ${emp.totalShifts} total shifts\n`;
-                report += `  Night: ${emp.shiftBreakdown.night}, Morning: ${emp.shiftBreakdown.morning}, Late: ${emp.shiftBreakdown.late}\n`;
+            // Employee statistics
+            report += "EMPLOYEE STATISTICS:\n";
+            report += `-`.repeat(30) + "\n";
+            const sortedEmployees = [...scheduleData.employees].sort((a, b) => b.totalShifts - a.totalShifts);
+            sortedEmployees.forEach(emp => {
+                report += `${emp.name} (Group ${emp.group}): ${emp.totalShifts} shifts `;
+                report += `(Night: ${emp.shiftBreakdown.night}, Morning: ${emp.shiftBreakdown.morning}, Late: ${emp.shiftBreakdown.late})\n`;
             });
             
-            // Create and download report
-            const reportBlob = new Blob([report], { type: 'text/plain' });
-            const url = URL.createObjectURL(reportBlob);
+            // Download report
+            const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(report);
+            const downloadElement = document.createElement('a');
+            downloadElement.setAttribute("href", dataStr);
+            downloadElement.setAttribute("download", `schedule_report_${new Date().toISOString().split('T')[0]}.txt`);
+            document.body.appendChild(downloadElement);
+            downloadElement.click();
+            document.body.removeChild(downloadElement);
             
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `schedule-report-${new Date().toISOString().split('T')[0]}.txt`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            showNotification('Schedule report generated and downloaded', 'success');
         }
 
-        // Auto-save functionality
-        function startAutoSave() {
-            setInterval(() => {
-                saveData();
-            }, 30000); // Auto-save every 30 seconds
-        }
-
-        // Start the application
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeApp();
-            startAutoSave();
-        });
-
-        // Add keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                switch (e.key) {
-                    case 's':
-                        e.preventDefault();
-                        saveData();
-                        break;
-                    case 'r':
-                        e.preventDefault();
-                        if (confirm('Reset all data?')) {
-                            resetAllData();
-                        }
-                        break;
-                    case 'e':
-                        e.preventDefault();
-                        exportData();
-                        break;
-                }
+        function autoAssignShifts() {
+            if (!confirm('This will automatically assign employees to all available shifts. Continue?')) {
+                return;
             }
-        });
+            
+            let totalAssignments = 0;
+            
+            // For each working day, assign employees to each shift type
+            workingDays.forEach(date => {
+                Object.keys(scheduleData.shifts).forEach(shiftType => {
+                    const availableEmployees = scheduleData.employees.filter(emp => {
+                        const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
+                        return !assignments.includes(emp.name);
+                    }).sort((a, b) => a.totalShifts - b.totalShifts);
+                    
+                    // Assign 2-3 employees per shift based on availability
+                    const employeesToAssign = Math.min(3, availableEmployees.length);
+                    for (let i = 0; i < employeesToAssign; i++) {
+                        assignEmployeeToShift(availableEmployees[i].name, [date], shiftType);
+                        totalAssignments++;
+                    }
+                });
+            });
+            
+            showNotification(`Auto-assignment completed: ${totalAssignments} assignments made`, 'success');
+        }
+
+        function resetAllData() {
+            if (!confirm('This will reset all schedule data. Are you sure?')) {
+                return;
+            }
+            
+            // Reset assignments
+            Object.keys(scheduleData.shifts).forEach(shiftType => {
+                scheduleData.shifts[shiftType].assignments = {};
+            });
+            
+            // Reset employee stats
+            scheduleData.employees.forEach(emp => {
+                emp.totalShifts = 0;
+                emp.shiftBreakdown = { night: 0, morning: 0, late: 0 };
+            });
+            
+            // Reset UI state
+            selectedStartDate = null;
+            selectedEndDate = null;
+            selectedShift = null;
+            
+            // Update all UI components
+            renderCalendar();
+            updateScheduleOverview();
+            updateSummaryStats();
+            updateShiftCounts();
+            updateEmployeeStats();
+            updateAvailableEmployees();
+            updateSelectedRange();
+            
+            // Reset shift selection
+            document.querySelectorAll('.shift-type-card').forEach(card => {
+                card.classList.remove('border-blue-500', 'border-orange-500', 'border-green-500', 'bg-blue-50', 'bg-orange-50', 'bg-green-50');
+                card.classList.add('border-gray-200');
+            });
+            
+            showNotification('All data has been reset', 'info');
+        }
+
+        // Initialize Application
+        function initializeApp() {
+            initializeEmployees();
+            setupCalendarNavigation();
+            setupShiftSelection();
+            setupShiftTabs();
+            renderCalendar();
+            updateScheduleOverview();
+            updateSummaryStats();
+            updateShiftCounts();
+            updateEmployeeStats();
+            
+            // Set initial active tab
+            document.querySelector('.shift-tab[data-shift="night"]').classList.add('active', 'bg-white', 'text-blue-600', 'shadow-sm');
+            document.querySelector('.shift-tab[data-shift="night"]').classList.remove('text-gray-600');
+        }
+
+        // Start the application when the page loads
+        document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
 </html>
