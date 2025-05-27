@@ -698,25 +698,38 @@
         }
 
         function smartAssignEmployees(dateRange, shiftType) {
-            const availableEmployees = getAvailableEmployees(dateRange, shiftType);
-            const employeesPerDay = Math.ceil(availableEmployees.length / dateRange.length);
-            
-            // Sort employees by total shifts (ascending) to balance workload
-            availableEmployees.sort((a, b) => a.totalShifts - b.totalShifts);
-            
-            let assignmentIndex = 0;
-            dateRange.forEach(date => {
-                for (let i = 0; i < Math.min(employeesPerDay, availableEmployees.length - assignmentIndex); i++) {
-                    const employee = availableEmployees[assignmentIndex + i];
-                    assignEmployeeToShift(employee.name, [date], shiftType);
-                }
-                assignmentIndex += employeesPerDay;
-                if (assignmentIndex >= availableEmployees.length) assignmentIndex = 0;
+    const availableEmployees = getAvailableEmployees(dateRange, shiftType);
+    
+    // Group employees by their groups
+    const groupedEmployees = {
+        'A': availableEmployees.filter(emp => emp.group === 'A'),
+        'B': availableEmployees.filter(emp => emp.group === 'B'),
+        'C': availableEmployees.filter(emp => emp.group === 'C')
+    };
+
+    let groupIndex = 0;
+    const groups = ['A', 'B', 'C'];
+    
+    dateRange.forEach((date, index) => {
+        // Rotate through groups for each date
+        const currentGroup = groups[groupIndex % groups.length];
+        const groupEmployees = groupedEmployees[currentGroup];
+        
+        if (groupEmployees.length > 0) {
+            // Take first 3 employees from the group
+            const employeesToAssign = groupEmployees.slice(0, 3);
+            employeesToAssign.forEach(emp => {
+                assignEmployeeToShift(emp.name, [date], shiftType);
             });
             
-            showNotification(`Smart assignment completed for ${shiftType} shift`, 'success');
+            // Move to next group for next date
+            groupIndex++;
         }
-
+    });
+    
+    showNotification(`Smart assignment completed for ${shiftType} shift (Group rotation)`, 'success');
+}
+        
         // Schedule Overview Functions
         function setupShiftTabs() {
             document.querySelectorAll('.shift-tab').forEach(tab => {
@@ -735,31 +748,58 @@
             });
         }
 
-        function updateScheduleOverview() {
-            const scheduleContent = document.getElementById('scheduleContent');
-            const shiftData = scheduleData.shifts[activeTab];
-            
-            scheduleContent.innerHTML = '';
-
-            // Get all unique employees assigned to this shift
-    const assignedEmployees = new Set();
-    Object.values(shiftData.assignments).forEach(assignments => {
-        assignments.forEach(emp => assignedEmployees.add(emp));
-    });
+function updateScheduleOverview() {
+    const scheduleContent = document.getElementById('scheduleContent');
+    const shiftData = scheduleData.shifts[activeTab];
     
-    if (assignedEmployees.size === 0) {
-        scheduleContent.innerHTML = `
-            <div class="text-center py-12 text-gray-500">
-                <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z"/>
-                </svg>
-                <p class="text-lg font-medium mb-2">No ${shiftData.name} assignments yet</p>
-                <p class="text-sm">Select dates and assign employees to get started</p>
-            </div>
-        `;
+    scheduleContent.innerHTML = '';
+
+    // Get sorted dates for this shift
+    const sortedDates = Object.keys(shiftData.assignments).sort();
+
+    if (sortedDates.length === 0) {
+        // Show empty state
         return;
     }
-    
+
+    sortedDates.forEach(date => {
+        const dateObj = new Date(date + 'T00:00:00');
+        const assignments = shiftData.assignments[date];
+        
+        // Create date section
+        const dateSection = document.createElement('div');
+        dateSection.className = 'bg-gray-50 rounded-lg p-4 mb-4';
+        dateSection.innerHTML = `
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-semibold">
+                    ${dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                </h3>
+                <span class="text-sm text-gray-600">${assignments.length} employees</span>
+            </div>
+            <div class="grid grid-cols-1 gap-2">
+                ${assignments.map(empName => {
+                    const employee = scheduleData.employees.find(e => e.name === empName);
+                    return `
+                        <div class="flex items-center justify-between bg-white p-2 rounded border">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs">
+                                    ${empName.charAt(0)}
+                                </div>
+                                <span class="text-sm">${empName}</span>
+                                <span class="text-xs text-gray-500">Group ${employee?.group}</span>
+                            </div>
+                            <button onclick="removeEmployeeFromShift('${empName}', '${date}', '${activeTab}')" class="text-red-500 hover:text-red-700 text-xs">
+                                Remove
+                            </button>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+        
+        scheduleContent.appendChild(dateSection);
+    });
+}    
     // Group assigned employees by their groups
     const groupA = [];
     const groupB = [];
@@ -889,22 +929,6 @@
                 scheduleContent.appendChild(dateDiv);
             });
         }
-
-        function removeEmployeeFromAllShifts(empName, shiftType) {
-    let removedCount = 0;
-    const assignments = scheduleData.shifts[shiftType].assignments;
-    
-    Object.keys(assignments).forEach(date => {
-        const index = assignments[date].indexOf(empName);
-        if (index > -1) {
-            assignments[date].splice(index, 1);
-            removedCount++;
-            
-            if (assignments[date].length === 0) {
-                delete assignments[date];
-            }
-        }
-    });
     
     if (removedCount > 0) {
         const employee = scheduleData.employees.find(emp => emp.name === empName);
@@ -913,6 +937,17 @@
             employee.shiftBreakdown[shiftType] = Math.max(0, employee.shiftBreakdown[shiftType] - removedCount);
 
             function clearDateAssignments(date, shiftType) {
+    const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
+    
+    assignments.forEach(empName => {
+        const employee = scheduleData.employees.find(emp => emp.name === empName);
+        if (employee) {
+            employee.totalShifts--;
+            employee.shiftBreakdown[shiftType]--;
+        }
+    });
+
+                function clearDateAssignments(date, shiftType) {
     const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
     
     assignments.forEach(empName => {
