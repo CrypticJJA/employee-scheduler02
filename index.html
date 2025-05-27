@@ -929,45 +929,45 @@ function updateScheduleOverview() {
                 scheduleContent.appendChild(dateDiv);
             });
         }
-    
-    if (removedCount > 0) {
-        const employee = scheduleData.employees.find(emp => emp.name === empName);
-        if (employee) {
-            employee.totalShifts -= removedCount;
-            employee.shiftBreakdown[shiftType] = Math.max(0, employee.shiftBreakdown[shiftType] - removedCount);
 
             function clearDateAssignments(date, shiftType) {
-    const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
-    
-    assignments.forEach(empName => {
-        const employee = scheduleData.employees.find(emp => emp.name === empName);
-        if (employee) {
-            employee.totalShifts--;
-            employee.shiftBreakdown[shiftType]--;
-        }
-    });
-
+                const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
+                
+                assignments.forEach(empName => {
+                    const employee = scheduleData.employees.find(emp => emp.name === empName);
+                    if (employee) {
+                        employee.totalShifts--;
+                        employee.shiftBreakdown[shiftType]--;
+                    });
+                
                 function clearDateAssignments(date, shiftType) {
-    const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
-    
-    assignments.forEach(empName => {
-        const employee = scheduleData.employees.find(emp => emp.name === empName);
-        if (employee) {
-            employee.totalShifts--;
-            employee.shiftBreakdown[shiftType]--;
-        }
-    });
-    
-    delete scheduleData.shifts[shiftType].assignments[date];
-    
-    updateScheduleOverview();
-    updateSummaryStats();
-    updateShiftCounts();
-    updateEmployeeStats();
-    updateAvailableEmployees();
-    
-    showNotification(`Cleared all assignments for ${date}`, 'info');
-}
+                    const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
+                    assignments.forEach(empName => {
+                        const employee = scheduleData.employees.find(emp => emp.name === empName);
+                        if (employee) {
+                            employee.totalShifts--;
+                            employee.shiftBreakdown[shiftType]--;
+                        }
+                    });
+                    
+                    if (removedCount > 0) {
+                        const employee = scheduleData.employees.find(emp => emp.name === empName);
+                        if (employee) {
+                            employee.totalShifts -= removedCount;
+                            employee.shiftBreakdown[shiftType] = Math.max(0, employee.shiftBreakdown[shiftType] - removedCount);
+                        }
+                    }
+                    
+                    delete scheduleData.shifts[shiftType].assignments[date];
+        
+        updateScheduleOverview();
+        updateSummaryStats();
+        updateShiftCounts();
+        updateEmployeeStats();
+        updateAvailableEmployees();
+        
+        showNotification(`Cleared all assignments for ${date}`, 'info');
+    }
 
         function removeEmployeeFromShift(empName, date, shiftType) {
             const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
