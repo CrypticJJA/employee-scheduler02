@@ -274,17 +274,16 @@
 
         <!-- Employee Management Panel -->
         <div class="mt-8 bg-white rounded-2xl shadow-xl p-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-                Employee Statistics
-            </h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="employeeStats"></div>
-        </div>
-    </div>
-
+    <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        Employee Profiles
+    </h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="employeeStats"></div>
+</div>
+        
     <script>
         // Application State
         let scheduleData = {
@@ -509,6 +508,87 @@
             const dateRange = getDateRange(selectedStartDate, selectedEndDate || selectedStartDate);
             const availableEmployees = getAvailableEmployees(dateRange, selectedShift);
 
+            // Group employees by A & B
+    const groupA = availableEmployees.filter(emp => emp.group === 'A');
+    const groupB = availableEmployees.filter(emp => emp.group === 'B');
+
+    // Create Group A section
+    if (groupA.length > 0) {
+        const groupADiv = document.createElement('div');
+        groupADiv.className = 'mb-4';
+        groupADiv.innerHTML = `
+            <h4 class="font-semibold text-gray-700 mb-3 px-2">Group A</h4>
+            <div class="space-y-2">
+                ${groupA.map(emp => `
+                    <div class="employee-card p-3 border-2 border-gray-200 rounded-lg flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                                ${emp.name.charAt(0)}
+                            </div>
+                            <span class="font-medium text-gray-800">${emp.name}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button class="assign-btn bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors" data-employee="${emp.name}">
+                                Assign
+                            </button>
+                            <button class="change-group-btn bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600 transition-colors" data-employee="${emp.name}" data-current-group="A">
+                                Change Group
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        employeesList.appendChild(groupADiv);
+    }
+
+    // Create Group B section
+    if (groupB.length > 0) {
+        const groupBDiv = document.createElement('div');
+        groupBDiv.className = 'mb-4';
+        groupBDiv.innerHTML = `
+            <h4 class="font-semibold text-gray-700 mb-3 px-2">Group B</h4>
+            <div class="space-y-2">
+                ${groupB.map(emp => `
+                    <div class="employee-card p-3 border-2 border-gray-200 rounded-lg flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-gradient-to-r from-green-500 to-teal-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                                ${emp.name.charAt(0)}
+                            </div>
+                            <span class="font-medium text-gray-800">${emp.name}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button class="assign-btn bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors" data-employee="${emp.name}">
+                                Assign
+                            </button>
+                            <button class="change-group-btn bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600 transition-colors" data-employee="${emp.name}" data-current-group="B">
+                                Change Group
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        employeesList.appendChild(groupBDiv);
+    }
+
+    // Add event listeners for assign buttons
+    document.querySelectorAll('.assign-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const employeeName = btn.dataset.employee;
+            assignEmployeeToShift(employeeName, dateRange, selectedShift);
+        });
+    });
+
+    // Add event listeners for change group buttons
+    document.querySelectorAll('.change-group-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const employeeName = btn.dataset.employee;
+            const currentGroup = btn.dataset.currentGroup;
+            const newGroup = currentGroup === 'A' ? 'B' : 'A';
+            changeEmployeeGroup(employeeName, newGroup);
+        });
+    });
             availableEmployees.forEach(emp => {
                 const empDiv = document.createElement('div');
                 empDiv.className = 'employee-card p-3 border-2 border-gray-200 rounded-lg flex items-center justify-between';
@@ -546,6 +626,17 @@
             };
         }
 
+        function changeEmployeeGroup(employeeName, newGroup) {
+    const employee = scheduleData.employees.find(emp => emp.name === employeeName);
+    if (employee) {
+        employee.group = newGroup;
+        updateAvailableEmployees();
+        updateScheduleOverview();
+        updateEmployeeStats();
+        showNotification(`${employeeName} moved to Group ${newGroup}`, 'success');
+    }
+        }
+        
         function getDateRange(start, end) {
             const dates = [];
             const current = new Date(start);
@@ -646,6 +737,97 @@
             const shiftData = scheduleData.shifts[activeTab];
             
             scheduleContent.innerHTML = '';
+
+            // Get all unique employees assigned to this shift
+    const assignedEmployees = new Set();
+    Object.values(shiftData.assignments).forEach(assignments => {
+        assignments.forEach(emp => assignedEmployees.add(emp));
+    });
+    
+    if (assignedEmployees.size === 0) {
+        scheduleContent.innerHTML = `
+            <div class="text-center py-12 text-gray-500">
+                <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z"/>
+                </svg>
+                <p class="text-lg font-medium mb-2">No ${shiftData.name} assignments yet</p>
+                <p class="text-sm">Select dates and assign employees to get started</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Group assigned employees by their groups
+    const groupA = [];
+    const groupB = [];
+    
+    assignedEmployees.forEach(empName => {
+        const employee = scheduleData.employees.find(e => e.name === empName);
+        if (employee) {
+            if (employee.group === 'A') {
+                groupA.push(employee);
+            } else {
+                groupB.push(employee);
+            }
+        }
+    });
+    
+    // Create Group A section
+    if (groupA.length > 0) {
+        const groupADiv = document.createElement('div');
+        groupADiv.className = 'bg-blue-50 rounded-lg p-4 border border-blue-200 mb-4';
+        groupADiv.innerHTML = `
+            <h3 class="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">A</div>
+                Group A (${groupA.length} employees)
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                ${groupA.map(emp => `
+                    <div class="flex items-center justify-between bg-white p-2 rounded border">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                                ${emp.name.charAt(0)}
+                            </div>
+                            <span class="text-sm font-medium">${emp.name}</span>
+                        </div>
+                        <button class="text-red-500 hover:text-red-700 text-xs" onclick="removeEmployeeFromAllShifts('${emp.name}', '${activeTab}')">
+                            Remove
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        scheduleContent.appendChild(groupADiv);
+    }
+    
+    // Create Group B section
+    if (groupB.length > 0) {
+        const groupBDiv = document.createElement('div');
+        groupBDiv.className = 'bg-green-50 rounded-lg p-4 border border-green-200';
+        groupBDiv.innerHTML = `
+            <h3 class="font-semibold text-green-800 mb-3 flex items-center gap-2">
+                <div class="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center text-white text-sm font-bold">B</div>
+                Group B (${groupB.length} employees)
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                ${groupB.map(emp => `
+                    <div class="flex items-center justify-between bg-white p-2 rounded border">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 bg-gradient-to-r from-green-500 to-teal-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                                ${emp.name.charAt(0)}
+                            </div>
+                            <span class="text-sm font-medium">${emp.name}</span>
+                        </div>
+                        <button class="text-red-500 hover:text-red-700 text-xs" onclick="removeEmployeeFromAllShifts('${emp.name}', '${activeTab}')">
+                            Remove
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        scheduleContent.appendChild(groupBDiv);
+    }
+}
             
             const sortedDates = Object.keys(shiftData.assignments).sort();
             
@@ -705,6 +887,29 @@
             });
         }
 
+        function removeEmployeeFromAllShifts(empName, shiftType) {
+    let removedCount = 0;
+    const assignments = scheduleData.shifts[shiftType].assignments;
+    
+    Object.keys(assignments).forEach(date => {
+        const index = assignments[date].indexOf(empName);
+        if (index > -1) {
+            assignments[date].splice(index, 1);
+            removedCount++;
+            
+            if (assignments[date].length === 0) {
+                delete assignments[date];
+            }
+        }
+    });
+    
+    if (removedCount > 0) {
+        const employee = scheduleData.employees.find(emp => emp.name === empName);
+        if (employee) {
+            employee.totalShifts -= removedCount;
+            employee.shiftBreakdown[shiftType] = Math.max(0, employee.shiftBreakdown[shiftType] - removedCount);
+        }
+
         function clearDateAssignments(date, shiftType) {
             const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
             
@@ -724,8 +929,9 @@
             updateEmployeeStats();
             updateAvailableEmployees();
             
-            showNotification(`Cleared all assignments for ${new Date(date + 'T00:00:00').toLocaleDateString()}`, 'info');
-        }
+            showNotification(`${empName} removed from all ${shiftType} shifts (${removedCount} shifts)`, 'info');
+    }
+}
 
         function removeEmployeeFromShift(empName, date, shiftType) {
             const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
@@ -772,10 +978,11 @@
 
         function updateShiftCounts() {
             Object.keys(scheduleData.shifts).forEach(shiftType => {
-                const count = Object.values(scheduleData.shifts[shiftType].assignments).reduce((total, assignments) => {
-                    return total + assignments.length;
-                }, 0);
-                document.getElementById(`${shiftType}Count`).textContent = `${count} assigned`;
+                const uniqueEmployees = new Set();
+                Object.values(scheduleData.shifts[shiftType].assignments).forEach(assignments => {
+            assignments.forEach(emp => uniqueEmployees.add(emp));
+        });
+                document.getElementById(`${shiftType}Count`).textContent = `${uniqueEmployees.size} assigned`;
             });
         }
 
