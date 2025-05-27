@@ -12,178 +12,175 @@
         .glass-effect { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1); }
         .animate-fade-in { animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .employee-card:hover { transform: translateY(-2px); transition: all 0.2s ease; }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .calendar-day {
+            background: white;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .calendar-day:hover {
+            background: #f3f4f6;
+        }
+        
+        .calendar-day.disabled {
+            background: #f9fafb;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .calendar-day.selected {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .calendar-day.in-range {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        
+        .calendar-day.start-range, .calendar-day.end-range {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .employee-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .employee-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .employee-card.assigned {
+            background: #f0f9ff;
+            border-color: #3b82f6;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
-    <div id="app" class="max-w-7xl mx-auto p-6 space-y-8">
+    <div class="max-w-7xl mx-auto p-6">
         <!-- Header -->
         <div class="text-center mb-8">
             <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
                 Multi-Shift Scheduling System
             </h1>
-            <p class="text-gray-600">Manage night, morning, and late shifts with smart assignment</p>
+            <p class="text-gray-600">Manage your team shifts with intelligent scheduling</p>
         </div>
 
-        <!-- Employee Management Section -->
-        <div class="bg-white rounded-2xl shadow-xl p-6 mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
-                </svg>
-                Employee Management
-            </h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Component 1 - Shift Assignment -->
+            <div class="bg-white rounded-2xl shadow-xl p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Shift Assignment
+                </h2>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Add Employee -->
-                <div class="bg-green-50 rounded-xl p-4">
-                    <h3 class="font-semibold text-green-800 mb-4">Add New Employee</h3>
-                    <div class="space-y-3">
-                        <input
-                            type="text"
-                            id="newEmployeeName"
-                            placeholder="Employee Name"
-                            class="w-full p-3 border border-green-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
-                        <select id="newEmployeeGroup" class="w-full p-3 border border-green-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                            <option value="">Select Group</option>
-                            <option value="A">Group A</option>
-                            <option value="B">Group B</option>
-                            <option value="C">Group C</option>
-                        </select>
-                        <button
-                            id="addEmployeeBtn"
-                            class="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium"
-                        >
-                            ➕ Add Employee
-                        </button>
+                <!-- Date Range Selection -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Select Date Range</label>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <!-- Calendar Header -->
+                        <div class="flex items-center justify-between mb-4">
+                            <button id="prevMonth" class="p-2 hover:bg-white rounded-lg transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                </svg>
+                            </button>
+                            <h3 id="currentMonth" class="text-lg font-semibold"></h3>
+                            <button id="nextMonth" class="p-2 hover:bg-white rounded-lg transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Day Headers -->
+                        <div class="calendar-grid mb-1">
+                            <div class="calendar-day disabled font-semibold text-xs">Sun</div>
+                            <div class="calendar-day disabled font-semibold text-xs">Mon</div>
+                            <div class="calendar-day disabled font-semibold text-xs">Tue</div>
+                            <div class="calendar-day disabled font-semibold text-xs">Wed</div>
+                            <div class="calendar-day disabled font-semibold text-xs">Thu</div>
+                            <div class="calendar-day disabled font-semibold text-xs">Fri</div>
+                            <div class="calendar-day disabled font-semibold text-xs">Sat</div>
+                        </div>
+                        
+                        <!-- Calendar Days -->
+                        <div id="calendarDays" class="calendar-grid"></div>
+                        
+                        <!-- Selected Range Display -->
+                        <div id="selectedRange" class="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800 hidden">
+                            <strong>Selected:</strong> <span id="rangeText"></span>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Remove Employee -->
-                <div class="bg-red-50 rounded-xl p-4">
-                    <h3 class="font-semibold text-red-800 mb-4">Remove Employee</h3>
-                    <div class="space-y-3">
-                        <select id="removeEmployeeSelect" class="w-full p-3 border border-red-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent">
-                            <option value="">Select Employee to Remove</option>
-                        </select>
-                        <button
-                            id="removeEmployeeBtn"
-                            class="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition-colors font-medium"
-                            disabled
-                        >
-                            🗑️ Remove Employee
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Shift Assignment Section -->
-        <div class="bg-white rounded-2xl shadow-xl p-6 mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
-                Shift Assignment
-            </h2>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                <!-- Date Selection -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
-                    <select id="dateSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">Choose Date</option>
-                    </select>
                 </div>
 
                 <!-- Shift Type Selection -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Shift Type</label>
-                    <select id="shiftTypeSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">Select Shift</option>
-                        <option value="night">🌙 Night Shift (22:30-06:30)</option>
-                        <option value="morning">☀️ Morning Shift (06:30-14:30)</option>
-                        <option value="late">🌆 Late Shift (14:30-22:30)</option>
-                    </select>
-                </div>
-
-                <!-- Required People -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Required People</label>
-                    <input
-                        type="number"
-                        id="requiredPeople"
-                        min="0"
-                        max="20"
-                        value="0"
-                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Set Requirements -->
-                <div class="bg-blue-50 rounded-xl p-4">
-                    <h3 class="font-semibold text-blue-800 mb-3">Set Shift Requirements</h3>
-                    <button
-                        id="setRequirementBtn"
-                        class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-                        disabled
-                    >
-                        📝 Set Requirement
-                    </button>
-                </div>
-
-                <!-- Manual Assignment -->
-                <div class="bg-purple-50 rounded-xl p-4">
-                    <h3 class="font-semibold text-purple-800 mb-3">Manual Assignment</h3>
-                    <div class="space-y-3">
-                        <select id="employeeSelect" class="w-full p-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" disabled>
-                            <option value="">Choose Employee</option>
-                        </select>
-                        <button
-                            id="assignEmployeeBtn"
-                            class="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            disabled
-                        >
-                            👤 Assign Employee
-                        </button>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Shift Type</label>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div class="shift-type-card p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition-all" data-shift="night">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 shift-night rounded-lg flex items-center justify-center text-white text-xl">🌙</div>
+                                <div>
+                                    <h3 class="font-semibold text-gray-800">Night Shift</h3>
+                                    <p class="text-sm text-gray-600">22:30 - 06:30</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="shift-type-card p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-orange-500 transition-all" data-shift="morning">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 shift-morning rounded-lg flex items-center justify-center text-white text-xl">☀️</div>
+                                <div>
+                                    <h3 class="font-semibold text-gray-800">Morning Shift</h3>
+                                    <p class="text-sm text-gray-600">06:30 - 14:30</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="shift-type-card p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-green-500 transition-all" data-shift="late">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 shift-late rounded-lg flex items-center justify-center text-white text-xl">🌆</div>
+                                <div>
+                                    <h3 class="font-semibold text-gray-800">Late Shift</h3>
+                                    <p class="text-sm text-gray-600">14:30 - 22:30</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Smart Suggestions Panel -->
-            <div id="suggestionsPanel" class="mt-6 p-4 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl border-l-4 border-cyan-500 hidden animate-fade-in">
-                <h3 class="font-semibold text-cyan-800 mb-3">🤖 Smart Suggestions (Fair Distribution)</h3>
-                <p class="text-sm text-cyan-700 mb-4">Recommended employees based on current workload:</p>
-                <div id="suggestedEmployeesList" class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4"></div>
-                <div class="flex gap-3">
-                    <button
-                        id="autoAssignBtn"
-                        class="bg-cyan-600 text-white px-6 py-2 rounded-lg hover:bg-cyan-700 transition-colors font-medium"
-                    >
-                        ✨ Auto-Assign All
-                    </button>
-                    <button
-                        id="getSuggestionsBtn"
-                        class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                    >
-                        🎯 Get Suggestions
-                    </button>
-                    <button
-                        id="hideSuggestionsBtn"
-                        class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors font-medium"
-                    >
-                        Hide
-                    </button>
+                <!-- Available Employees -->
+                <div id="availableEmployees" class="hidden animate-fade-in">
+                    <div class="flex items-center justify-between mb-4">
+                        <label class="text-sm font-medium text-gray-700">Available Employees</label>
+                        <button id="assignAllBtn" class="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            Assign All
+                        </button>
+                    </div>
+                    <div id="employeesList" class="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto"></div>
                 </div>
             </div>
-        </div>
 
-        <!-- Schedule Overview -->
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            <!-- Current Schedule -->
+            <!-- Component 2 - Schedule Overview -->
             <div class="bg-white rounded-2xl shadow-xl p-6">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                     <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,87 +188,73 @@
                     </svg>
                     Schedule Overview
                 </h2>
-                <div id="scheduleOverview" class="space-y-4 max-h-96 overflow-y-auto"></div>
-            </div>
 
-            <!-- Employee Statistics -->
-            <div class="bg-white rounded-2xl shadow-xl p-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                    Employee Statistics
-                </h2>
-                <div id="employeeStats" class="space-y-4"></div>
+                <!-- Shift Tabs -->
+                <div class="flex bg-gray-100 rounded-lg p-1 mb-6">
+                    <button class="shift-tab flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all active" data-shift="night">
+                        🌙 Night Shift
+                    </button>
+                    <button class="shift-tab flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all" data-shift="morning">
+                        ☀️ Morning Shift
+                    </button>
+                    <button class="shift-tab flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all" data-shift="late">
+                        🌆 Late Shift
+                    </button>
+                </div>
+
+                <!-- Schedule Content -->
+                <div id="scheduleContent" class="space-y-4 max-h-96 overflow-y-auto"></div>
+
+                <!-- Summary Stats -->
+                <div class="mt-6 grid grid-cols-3 gap-4">
+                    <div class="bg-blue-50 p-4 rounded-lg text-center">
+                        <div id="totalEmployees" class="text-2xl font-bold text-blue-600">0</div>
+                        <div class="text-sm text-blue-800">Total Employees</div>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg text-center">
+                        <div id="totalAssignments" class="text-2xl font-bold text-green-600">0</div>
+                        <div class="text-sm text-green-800">Assignments</div>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg text-center">
+                        <div id="avgShifts" class="text-2xl font-bold text-purple-600">0</div>
+                        <div class="text-sm text-purple-800">Avg/Employee</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Summary Dashboard -->
-        <div class="bg-white rounded-2xl shadow-xl p-6">
-            <h3 class="text-xl font-bold text-gray-800 mb-6">📊 Summary Dashboard</h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-xl text-center">
-                    <div id="totalEmployees" class="text-2xl font-bold">0</div>
-                    <div class="text-sm opacity-90">Total Employees</div>
-                </div>
-                <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl text-center">
-                    <div id="totalAssignments" class="text-2xl font-bold">0</div>
-                    <div class="text-sm opacity-90">Total Assignments</div>
-                </div>
-                <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-xl text-center">
-                    <div id="avgShiftsPerPerson" class="text-2xl font-bold">0</div>
-                    <div class="text-sm opacity-90">Avg Shifts/Person</div>
-                </div>
-                <div class="bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-xl text-center">
-                    <div id="understaffedShifts" class="text-2xl font-bold">0</div>
-                    <div class="text-sm opacity-90">Understaffed</div>
-                </div>
-            </div>
-            
-            <div class="text-center">
-                <button
-                    onclick="resetAllData()"
-                    class="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition-colors font-medium"
-                >
-                    🔄 Reset All Data
-                </button>
-            </div>
+        <!-- Quick Actions -->
+        <div class="mt-8 text-center">
+            <button onclick="resetAllData()" class="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition-colors font-medium">
+                🔄 Reset All Data
+            </button>
         </div>
     </div>
 
     <script>
         // Application State
         let scheduleData = {
-            dates: [],
             employees: [],
             shifts: {
-                night: { name: 'Night Shift', time: '22:30-06:30', icon: '🌙' },
-                morning: { name: 'Morning Shift', time: '06:30-14:30', icon: '☀️' },
-                late: { name: 'Late Shift', time: '14:30-22:30', icon: '🌆' }
+                night: { name: 'Night Shift', time: '22:30-06:30', icon: '🌙', assignments: {} },
+                morning: { name: 'Morning Shift', time: '06:30-14:30', icon: '☀️', assignments: {} },
+                late: { name: 'Late Shift', time: '14:30-22:30', icon: '🌆', assignments: {} }
             }
         };
 
-        let selectedDate = '';
-        let selectedShift = '';
+        let currentDate = new Date(2025, 5, 1); // June 2025
+        let selectedStartDate = null;
+        let selectedEndDate = null;
+        let selectedShift = null;
+        let activeTab = 'night';
 
-        // Initialize dates for June 2025 (working days only)
-        function initializeDates() {
-            const workingDates = [
-                '02-06-2025', '03-06-2025', '04-06-2025', '05-06-2025', '06-06-2025',
-                '09-06-2025', '10-06-2025', '11-06-2025', '12-06-2025', '13-06-2025',
-                '16-06-2025', '17-06-2025', '18-06-2025', '19-06-2025', '20-06-2025',
-                '23-06-2025', '24-06-2025'
-            ];
-
-            scheduleData.dates = workingDates.map(date => ({
-                date,
-                shifts: {
-                    night: { required: 0, assigned: [] },
-                    morning: { required: 0, assigned: [] },
-                    late: { required: 0, assigned: [] }
-                }
-            }));
-        }
+        // Working days in June 2025
+        const workingDays = [
+            '2025-06-02', '2025-06-03', '2025-06-04', '2025-06-05', '2025-06-06',
+            '2025-06-09', '2025-06-10', '2025-06-11', '2025-06-12', '2025-06-13',
+            '2025-06-16', '2025-06-17', '2025-06-18', '2025-06-19', '2025-06-20',
+            '2025-06-23', '2025-06-24'
+        ];
 
         // Initialize default employees
         function initializeEmployees() {
@@ -302,7 +285,322 @@
             }));
         }
 
-        // Utility Functions
+        // Calendar Functions
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function isWorkingDay(dateStr) {
+            return workingDays.includes(dateStr);
+        }
+
+        function isDateInRange(date, start, end) {
+            if (!start || !end) return false;
+            return date >= start && date <= end;
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            document.getElementById('currentMonth').textContent = 
+                new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate);
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+            const calendarDays = document.getElementById('calendarDays');
+            calendarDays.innerHTML = '';
+
+            for (let i = 0; i < 42; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                
+                const dateStr = formatDate(date);
+                const isCurrentMonth = date.getMonth() === month;
+                const isWorking = isWorkingDay(dateStr);
+                const isSelected = (selectedStartDate && date.getTime() === selectedStartDate.getTime()) ||
+                                  (selectedEndDate && date.getTime() === selectedEndDate.getTime());
+                const isInRange = selectedStartDate && selectedEndDate && 
+                                  isDateInRange(date, selectedStartDate, selectedEndDate);
+
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                dayElement.textContent = date.getDate();
+                dayElement.dataset.date = dateStr;
+
+                if (!isCurrentMonth || !isWorking) {
+                    dayElement.classList.add('disabled');
+                } else {
+                    if (isSelected) {
+                        dayElement.classList.add(selectedStartDate && date.getTime() === selectedStartDate.getTime() ? 'start-range' : 'end-range');
+                    } else if (isInRange) {
+                        dayElement.classList.add('in-range');
+                    }
+
+                    dayElement.addEventListener('click', () => selectDate(date));
+                }
+
+                calendarDays.appendChild(dayElement);
+            }
+        }
+
+        function selectDate(date) {
+            if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
+                // Start new selection
+                selectedStartDate = new Date(date);
+                selectedEndDate = null;
+            } else {
+                // Complete range selection
+                if (date < selectedStartDate) {
+                    selectedEndDate = selectedStartDate;
+                    selectedStartDate = new Date(date);
+                } else {
+                    selectedEndDate = new Date(date);
+                }
+            }
+
+            updateSelectedRange();
+            renderCalendar();
+            updateAvailableEmployees();
+        }
+
+        function updateSelectedRange() {
+            const rangeDiv = document.getElementById('selectedRange');
+            const rangeText = document.getElementById('rangeText');
+
+            if (selectedStartDate) {
+                if (selectedEndDate) {
+                    rangeText.textContent = `${selectedStartDate.toLocaleDateString()} - ${selectedEndDate.toLocaleDateString()}`;
+                } else {
+                    rangeText.textContent = selectedStartDate.toLocaleDateString();
+                }
+                rangeDiv.classList.remove('hidden');
+            } else {
+                rangeDiv.classList.add('hidden');
+            }
+        }
+
+        // Shift Selection
+        function setupShiftSelection() {
+            document.querySelectorAll('.shift-type-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    // Remove active state from all cards
+                    document.querySelectorAll('.shift-type-card').forEach(c => {
+                        c.classList.remove('border-blue-500', 'border-orange-500', 'border-green-500', 'bg-blue-50', 'bg-orange-50', 'bg-green-50');
+                        c.classList.add('border-gray-200');
+                    });
+
+                    // Add active state to selected card
+                    const shift = card.dataset.shift;
+                    selectedShift = shift;
+                    
+                    if (shift === 'night') {
+                        card.classList.add('border-blue-500', 'bg-blue-50');
+                    } else if (shift === 'morning') {
+                        card.classList.add('border-orange-500', 'bg-orange-50');
+                    } else if (shift === 'late') {
+                        card.classList.add('border-green-500', 'bg-green-50');
+                    }
+
+                    updateAvailableEmployees();
+                });
+            });
+        }
+
+        // Employee Management
+        function updateAvailableEmployees() {
+            const container = document.getElementById('availableEmployees');
+            const employeesList = document.getElementById('employeesList');
+
+            if (!selectedStartDate || !selectedShift) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            employeesList.innerHTML = '';
+
+            const dateRange = getDateRange(selectedStartDate, selectedEndDate || selectedStartDate);
+            const availableEmployees = getAvailableEmployees(dateRange, selectedShift);
+
+            availableEmployees.forEach(emp => {
+                const empDiv = document.createElement('div');
+                empDiv.className = 'employee-card p-3 border-2 border-gray-200 rounded-lg flex items-center justify-between';
+                empDiv.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                            ${emp.name.charAt(0)}
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-800">${emp.name}</div>
+                            <div class="text-sm text-gray-600">Group ${emp.group} • ${emp.totalShifts} shifts</div>
+                        </div>
+                    </div>
+                    <button class="assign-btn bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm" data-employee="${emp.name}">
+                        Assign
+                    </button>
+                `;
+
+                empDiv.querySelector('.assign-btn').addEventListener('click', () => {
+                    assignEmployeeToShift(emp.name, dateRange, selectedShift);
+                });
+
+                employeesList.appendChild(empDiv);
+            });
+
+            // Assign All button
+            document.getElementById('assignAllBtn').onclick = () => {
+                availableEmployees.forEach(emp => {
+                    assignEmployeeToShift(emp.name, dateRange, selectedShift);
+                });
+            };
+        }
+
+        function getDateRange(start, end) {
+            const dates = [];
+            const current = new Date(start);
+            
+            while (current <= end) {
+                const dateStr = formatDate(current);
+                if (isWorkingDay(dateStr)) {
+                    dates.push(dateStr);
+                }
+                current.setDate(current.getDate() + 1);
+            }
+            
+            return dates;
+        }
+
+        function getAvailableEmployees(dateRange, shiftType) {
+            return scheduleData.employees.filter(emp => {
+                return !dateRange.some(date => {
+                    const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
+                    return assignments.includes(emp.name);
+                });
+            }).sort((a, b) => a.totalShifts - b.totalShifts);
+        }
+
+        function assignEmployeeToShift(employeeName, dateRange, shiftType) {
+            dateRange.forEach(date => {
+                if (!scheduleData.shifts[shiftType].assignments[date]) {
+                    scheduleData.shifts[shiftType].assignments[date] = [];
+                }
+                
+                if (!scheduleData.shifts[shiftType].assignments[date].includes(employeeName)) {
+                    scheduleData.shifts[shiftType].assignments[date].push(employeeName);
+                    
+                    // Update employee stats
+                    const employee = scheduleData.employees.find(emp => emp.name === employeeName);
+                    if (employee) {
+                        employee.totalShifts++;
+                        employee.shiftBreakdown[shiftType]++;
+                    }
+                }
+            });
+
+            saveData();
+            updateAvailableEmployees();
+            updateScheduleOverview();
+            updateSummaryStats();
+        }
+
+        // Schedule Overview
+        function setupScheduleTabs() {
+            document.querySelectorAll('.shift-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.shift-tab').forEach(t => {
+                        t.classList.remove('active', 'bg-white', 'shadow-sm');
+                    });
+                    
+                    tab.classList.add('active', 'bg-white', 'shadow-sm');
+                    activeTab = tab.dataset.shift;
+                    updateScheduleOverview();
+                });
+            });
+        }
+
+        function updateScheduleOverview() {
+            const container = document.getElementById('scheduleContent');
+            const assignments = scheduleData.shifts[activeTab].assignments;
+            
+            container.innerHTML = '';
+
+            if (Object.keys(assignments).length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <div class="text-4xl mb-2">${scheduleData.shifts[activeTab].icon}</div>
+                        <p>No assignments for ${scheduleData.shifts[activeTab].name}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            Object.keys(assignments).sort().forEach(date => {
+                const employeeList = assignments[date];
+                if (employeeList.length === 0) return;
+
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'bg-gray-50 rounded-lg p-4';
+                dateDiv.innerHTML = `
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-semibold text-gray-800">${new Date(date).toLocaleDateString()}</h3>
+                        <span class="text-sm text-gray-600">${employeeList.length} assigned</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        ${employeeList.map(name => `
+                            <span class="bg-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                                ${name}
+                                <button onclick="removeAssignment('${date}', '${activeTab}', '${name}')" 
+                                        class="text-red-500 hover:text-red-700 text-xs">
+                                    ×
+                                </button>
+                            </span>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(dateDiv);
+            });
+        }
+
+        function removeAssignment(date, shiftType, employeeName) {
+            const assignments = scheduleData.shifts[shiftType].assignments[date];
+            const index = assignments.indexOf(employeeName);
+            
+            if (index > -1) {
+                assignments.splice(index, 1);
+                
+                // Update employee stats
+                const employee = scheduleData.employees.find(emp => emp.name === employeeName);
+                if (employee) {
+                    employee.totalShifts = Math.max(0, employee.totalShifts - 1);
+                    employee.shiftBreakdown[shiftType] = Math.max(0, employee.shiftBreakdown[shiftType] - 1);
+                }
+                
+                saveData();
+                updateScheduleOverview();
+                updateAvailableEmployees();
+                updateSummaryStats();
+            }
+        }
+
+        // Summary Statistics
+        function updateSummaryStats() {
+            const totalEmployees = scheduleData.employees.length;
+            const totalAssignments = scheduleData.employees.reduce((sum, emp) => sum + emp.totalShifts, 0);
+            const avgShifts = totalEmployees > 0 ? (totalAssignments / totalEmployees).toFixed(1) : 0;
+
+            document.getElementById('totalEmployees').textContent = totalEmployees;
+            document.getElementById('totalAssignments').textContent = totalAssignments;
+            document.getElementById('avgShifts').textContent = avgShifts;
+        }
+
+        // Data Persistence
         function saveData() {
             const dataToSave = JSON.stringify(scheduleData);
             const compressedData = btoa(dataToSave);
@@ -326,511 +624,195 @@
             return false;
         }
 
-        function shuffleArray(array) {
-            const newArray = [...array];
-            for (let i = newArray.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-            }
-            return newArray;
-        }
-
-        function getSuggestedEmployees(dateStr, shiftType, requiredCount) {
-            const targetDate = scheduleData.dates.find(d => d.date === dateStr);
-            if (!targetDate || requiredCount === 0) return [];
-
-            const currentlyAssigned = targetDate.shifts[shiftType].assigned;
-            const availableEmployees = scheduleData.employees.filter(
-                emp => !currentlyAssigned.includes(emp.name)
-            );
-
-            // Shuffle for fairness, then sort by total shifts
-            const shuffled = shuffleArray(availableEmployees);
-            const prioritized = shuffled.sort((a, b) => a.totalShifts - b.totalShifts);
-            
-            return prioritized.slice(0, Math.min(requiredCount, prioritized.length));
-        }
-
-        // DOM Management
-        function populateDateSelect() {
-            const dateSelect = document.getElementById('dateSelect');
-            dateSelect.innerHTML = '<option value="">Choose Date</option>';
-            
-            scheduleData.dates.forEach(dateObj => {
-                const option = document.createElement('option');
-                option.value = dateObj.date;
-                option.textContent = dateObj.date;
-                dateSelect.appendChild(option);
-            });
-        }
-
-        function populateEmployeeSelects() {
-            const employeeSelect = document.getElementById('employeeSelect');
-            const removeSelect = document.getElementById('removeEmployeeSelect');
-            
-            // Clear selects
-            employeeSelect.innerHTML = '<option value="">Choose Employee</option>';
-            removeSelect.innerHTML = '<option value="">Select Employee to Remove</option>';
-            
-            if (!selectedDate || !selectedShift) {
-                employeeSelect.disabled = true;
-                return;
-            }
-
-            const targetDate = scheduleData.dates.find(d => d.date === selectedDate);
-            if (!targetDate) return;
-
-            const currentlyAssigned = targetDate.shifts[selectedShift].assigned;
-            const availableEmployees = scheduleData.employees.filter(
-                emp => !currentlyAssigned.includes(emp.name)
-            );
-
-            // Sort available employees by total shifts for fair distribution
-            const sortedEmployees = availableEmployees.sort((a, b) => a.totalShifts - b.totalShifts);
-
-            sortedEmployees.forEach(emp => {
-                const option = document.createElement('option');
-                option.value = emp.name;
-                option.textContent = `${emp.name} (Group ${emp.group}) - ${emp.totalShifts} total shifts`;
-                employeeSelect.appendChild(option);
-            });
-
-            // Populate remove select with all employees
-            scheduleData.employees.forEach(emp => {
-                const option = document.createElement('option');
-                option.value = emp.name;
-                option.textContent = `${emp.name} (Group ${emp.group})`;
-                removeSelect.appendChild(option);
-            });
-
-            employeeSelect.disabled = false;
-        }
-
-        // Employee Management
-        function addEmployee() {
-            const nameInput = document.getElementById('newEmployeeName');
-            const groupSelect = document.getElementById('newEmployeeGroup');
-            
-            const name = nameInput.value.trim();
-            const group = groupSelect.value;
-            
-            if (!name || !group) {
-                alert('Please enter both name and group');
-                return;
-            }
-
-            if (scheduleData.employees.some(emp => emp.name === name)) {
-                alert('Employee with this name already exists');
-                return;
-            }
-
-            scheduleData.employees.push({
-                name,
-                group,
-                totalShifts: 0,
-                shiftBreakdown: { night: 0, morning: 0, late: 0 }
-            });
-
-            nameInput.value = '';
-            groupSelect.value = '';
-            
-            updateUI();
-            saveData();
-            
-            // Success animation
-            const btn = document.getElementById('addEmployeeBtn');
-            btn.textContent = '✅ Added!';
-            btn.className = btn.className.replace('bg-green-600', 'bg-green-500');
-            setTimeout(() => {
-                btn.textContent = '➕ Add Employee';
-                btn.className = btn.className.replace('bg-green-500', 'bg-green-600');
-            }, 1500);
-        }
-
-        function removeEmployee() {
-            const removeSelect = document.getElementById('removeEmployeeSelect');
-            const employeeName = removeSelect.value;
-            
-            if (!employeeName) return;
-
-            if (confirm(`Are you sure you want to remove ${employeeName}? This will remove them from all shifts.`)) {
-                // Remove from all shift assignments
-                scheduleData.dates.forEach(dateObj => {
-                    Object.keys(dateObj.shifts).forEach(shiftType => {
-                        dateObj.shifts[shiftType].assigned = dateObj.shifts[shiftType].assigned.filter(
-                            name => name !== employeeName
-                        );
-                    });
-                });
-
-                // Remove from employees list
-                scheduleData.employees = scheduleData.employees.filter(emp => emp.name !== employeeName);
-                
-                removeSelect.value = '';
-                updateUI();
-                saveData();
-                
-                // Success feedback
-                const btn = document.getElementById('removeEmployeeBtn');
-                btn.textContent = '🗑️ Removed!';
-                btn.disabled = true;
-                setTimeout(() => {
-                    btn.textContent = '🗑️ Remove Employee';
-                }, 1500);
-            }
-        }
-
-        // Shift Management
-        function setRequirement() {
-            if (!selectedDate || !selectedShift) return;
-
-            const requiredPeople = parseInt(document.getElementById('requiredPeople').value) || 0;
-            const dateObj = scheduleData.dates.find(d => d.date === selectedDate);
-            
-            if (dateObj) {
-                dateObj.shifts[selectedShift].required = requiredPeople;
-                updateUI();
-                saveData();
-                
-                // Show suggestions if needed
-                if (requiredPeople > 0) {
-                    setTimeout(showSuggestions, 300);
-                }
-            }
-        }
-
-        function assignEmployee() {
-            const employeeSelect = document.getElementById('employeeSelect');
-            const employeeName = employeeSelect.value;
-            
-            if (!selectedDate || !selectedShift || !employeeName) return;
-
-            const dateObj = scheduleData.dates.find(d => d.date === selectedDate);
-            if (!dateObj) return;
-
-            if (dateObj.shifts[selectedShift].assigned.includes(employeeName)) return;
-
-            dateObj.shifts[selectedShift].assigned.push(employeeName);
-            
-            // Update employee stats
-            const employee = scheduleData.employees.find(emp => emp.name === employeeName);
-            if (employee) {
-                employee.totalShifts++;
-                employee.shiftBreakdown[selectedShift]++;
-            }
-
-            employeeSelect.value = '';
-            updateUI();
-            saveData();
-        }
-
-        function showSuggestions() {
-            if (!selectedDate || !selectedShift) return;
-
-            const dateObj = scheduleData.dates.find(d => d.date === selectedDate);
-            const requiredPeople = dateObj.shifts[selectedShift].required;
-            const currentAssigned = dateObj.shifts[selectedShift].assigned.length;
-            const needed = requiredPeople - currentAssigned;
-
-            if (needed <= 0) return;
-
-            const suggestions = getSuggestedEmployees(selectedDate, selectedShift, needed);
-            if (suggestions.length === 0) return;
-
-            const panel = document.getElementById('suggestionsPanel');
-            const list = document.getElementById('suggestedEmployeesList');
-            
-            list.innerHTML = '';
-            suggestions.forEach((emp, index) => {
-                const div = document.createElement('div');
-                div.className = 'bg-white p-3 rounded-lg border-l-4 border-cyan-500 shadow-sm';
-                div.innerHTML = `
-                    <span class="font-medium">${index + 1}. ${emp.name}</span>
-                    <span class="text-gray-600 ml-2">(Group ${emp.group}, ${emp.totalShifts} total shifts)</span>
-                `;
-                list.appendChild(div);
-            });
-
-            panel.classList.remove('hidden');
-            window.currentSuggestions = suggestions;
-        }
-
-        function autoAssignSuggestions() {
-            if (!window.currentSuggestions || !selectedDate || !selectedShift) return;
-
-            const dateObj = scheduleData.dates.find(d => d.date === selectedDate);
-            if (!dateObj) return;
-
-            window.currentSuggestions.forEach(emp => {
-                if (!dateObj.shifts[selectedShift].assigned.includes(emp.name)) {
-                    dateObj.shifts[selectedShift].assigned.push(emp.name);
-                    emp.totalShifts++;
-                    emp.shiftBreakdown[selectedShift]++;
-                }
-            });
-
-            document.getElementById('suggestionsPanel').classList.add('hidden');
-            window.currentSuggestions = null;
-            updateUI();
-            saveData();
-        }
-
-        function removeFromShift(date, shiftType, employeeName) {
-            const dateObj = scheduleData.dates.find(d => d.date === date);
-            if (!dateObj) return;
-
-            dateObj.shifts[shiftType].assigned = dateObj.shifts[shiftType].assigned.filter(
-                name => name !== employeeName
-            );
-
-            const employee = scheduleData.employees.find(emp => emp.name === employeeName);
-            if (employee) {
-                employee.totalShifts = Math.max(0, employee.totalShifts - 1);
-                employee.shiftBreakdown[shiftType] = Math.max(0, employee.shiftBreakdown[shiftType] - 1);
-            }
-
-            updateUI();
-            saveData();
-        }
-
-        // UI Updates
-        function updateScheduleOverview() {
-            const container = document.getElementById('scheduleOverview');
-            container.innerHTML = '';
-
-            scheduleData.dates.forEach(dateObj => {
-                const dateDiv = document.createElement('div');
-                dateDiv.className = 'border rounded-xl p-4 bg-gray-50';
-                
-                let shiftsHTML = '';
-                Object.keys(dateObj.shifts).forEach(shiftType => {
-                    const shift = dateObj.shifts[shiftType];
-                    const shiftInfo = scheduleData.shifts[shiftType];
-                    const status = shift.required === 0 ? 'inactive' :
-
-shift.assigned.length >= shift.required ? 'complete' : 'understaffed';
-                    
-                    const statusColor = status === 'inactive' ? 'bg-gray-200' : 
-                                      status === 'complete' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-                    
-                    shiftsHTML += `
-                        <div class="shift-${shiftType} text-white p-3 rounded-lg mb-2">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="font-medium">${shiftInfo.icon} ${shiftInfo.name}</span>
-                                <span class="text-sm opacity-90">${shiftInfo.time}</span>
-                            </div>
-                            <div class="text-sm opacity-90 mb-2">
-                                Required: ${shift.required} | Assigned: ${shift.assigned.length}
-                            </div>
-                            ${shift.assigned.length > 0 ? `
-                                <div class="flex flex-wrap gap-1">
-                                    ${shift.assigned.map(name => `
-                                        <span class="bg-white bg-opacity-20 px-2 py-1 rounded text-xs flex items-center gap-1">
-                                            ${name}
-                                            <button onclick="removeFromShift('${dateObj.date}', '${shiftType}', '${name}')" 
-                                                    class="hover:bg-red-500 rounded-full w-4 h-4 flex items-center justify-center text-xs">
-                                                ×
-                                            </button>
-                                        </span>
-                                    `).join('')}
-                                </div>
-                            ` : '<div class="text-sm opacity-75">No assignments</div>'}
-                        </div>
-                    `;
-                });
-
-                dateDiv.innerHTML = `
-                    <h3 class="font-bold text-lg mb-3 text-gray-800">${dateObj.date}</h3>
-                    ${shiftsHTML}
-                `;
-                
-                container.appendChild(dateDiv);
-            });
-        }
-
-        function updateEmployeeStats() {
-            const container = document.getElementById('employeeStats');
-            container.innerHTML = '';
-
-            if (scheduleData.employees.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-8">No employees added yet</p>';
-                return;
-            }
-
-            // Sort employees by total shifts for better visualization
-            const sortedEmployees = [...scheduleData.employees].sort((a, b) => b.totalShifts - a.totalShifts);
-
-            sortedEmployees.forEach(emp => {
-                const maxShifts = Math.max(...scheduleData.employees.map(e => e.totalShifts)) || 1;
-                const progressPercentage = (emp.totalShifts / maxShifts) * 100;
-
-                const div = document.createElement('div');
-                div.className = 'employee-card bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg border shadow-sm';
-                div.innerHTML = `
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <h4 class="font-semibold text-gray-800">${emp.name}</h4>
-                            <span class="text-sm text-gray-600">Group ${emp.group}</span>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-2xl font-bold text-blue-600">${emp.totalShifts}</div>
-                            <div class="text-xs text-gray-500">Total Shifts</div>
-                        </div>
-                    </div>
-                    
-                    <div class="w-full bg-gray-200 rounded-full h-2 mb-3">
-                        <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500" 
-                             style="width: ${progressPercentage}%"></div>
-                    </div>
-                    
-                    <div class="grid grid-cols-3 gap-2 text-sm">
-                        <div class="text-center p-2 bg-blue-900 text-white rounded">
-                            <div class="font-semibold">${emp.shiftBreakdown.night}</div>
-                            <div class="text-xs opacity-90">Night</div>
-                        </div>
-                        <div class="text-center p-2 bg-orange-600 text-white rounded">
-                            <div class="font-semibold">${emp.shiftBreakdown.morning}</div>
-                            <div class="text-xs opacity-90">Morning</div>
-                        </div>
-                        <div class="text-center p-2 bg-green-600 text-white rounded">
-                            <div class="font-semibold">${emp.shiftBreakdown.late}</div>
-                            <div class="text-xs opacity-90">Late</div>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function updateSummaryDashboard() {
-            const totalEmployees = scheduleData.employees.length;
-            const totalAssignments = scheduleData.employees.reduce((sum, emp) => sum + emp.totalShifts, 0);
-            const avgShiftsPerPerson = totalEmployees > 0 ? (totalAssignments / totalEmployees).toFixed(1) : 0;
-            
-            let understaffedCount = 0;
-            scheduleData.dates.forEach(dateObj => {
-                Object.keys(dateObj.shifts).forEach(shiftType => {
-                    const shift = dateObj.shifts[shiftType];
-                    if (shift.required > 0 && shift.assigned.length < shift.required) {
-                        understaffedCount++;
-                    }
-                });
-            });
-
-            document.getElementById('totalEmployees').textContent = totalEmployees;
-            document.getElementById('totalAssignments').textContent = totalAssignments;
-            document.getElementById('avgShiftsPerPerson').textContent = avgShiftsPerPerson;
-            document.getElementById('understaffedShifts').textContent = understaffedCount;
-        }
-
-        function updateUI() {
-            populateDateSelect();
-            populateEmployeeSelects();
-            updateScheduleOverview();
-            updateEmployeeStats();
-            updateSummaryDashboard();
-        }
-
-        // Event Listeners
-        function setupEventListeners() {
-            // Date and shift selection
-            document.getElementById('dateSelect').addEventListener('change', function() {
-                selectedDate = this.value;
-                selectedShift = '';
-                document.getElementById('shiftTypeSelect').value = '';
-                document.getElementById('requiredPeople').value = '0';
-                document.getElementById('setRequirementBtn').disabled = true;
-                document.getElementById('assignEmployeeBtn').disabled = true;
-                document.getElementById('suggestionsPanel').classList.add('hidden');
-                updateUI();
-            });
-
-            document.getElementById('shiftTypeSelect').addEventListener('change', function() {
-                selectedShift = this.value;
-                
-                if (selectedDate && selectedShift) {
-                    const dateObj = scheduleData.dates.find(d => d.date === selectedDate);
-                    if (dateObj) {
-                        document.getElementById('requiredPeople').value = dateObj.shifts[selectedShift].required;
-                    }
-                    document.getElementById('setRequirementBtn').disabled = false;
-                    document.getElementById('assignEmployeeBtn').disabled = false;
-                } else {
-                    document.getElementById('setRequirementBtn').disabled = true;
-                    document.getElementById('assignEmployeeBtn').disabled = false;
-                }
-                
-                document.getElementById('suggestionsPanel').classList.add('hidden');
-                updateUI();
-            });
-
-            // Employee management
-            document.getElementById('addEmployeeBtn').addEventListener('click', addEmployee);
-            document.getElementById('removeEmployeeBtn').addEventListener('click', removeEmployee);
-            document.getElementById('removeEmployeeSelect').addEventListener('change', function() {
-                document.getElementById('removeEmployeeBtn').disabled = !this.value;
-            });
-
-            // Shift management
-            document.getElementById('setRequirementBtn').addEventListener('click', setRequirement);
-            document.getElementById('assignEmployeeBtn').addEventListener('click', assignEmployee);
-
-            // Suggestions
-            document.getElementById('getSuggestionsBtn').addEventListener('click', showSuggestions);
-            document.getElementById('autoAssignBtn').addEventListener('click', autoAssignSuggestions);
-            document.getElementById('hideSuggestionsBtn').addEventListener('click', function() {
-                document.getElementById('suggestionsPanel').classList.add('hidden');
-            });
-
-            // Enter key support
-            document.getElementById('newEmployeeName').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') addEmployee();
-            });
-        }
-
-        // Reset function
         function resetAllData() {
             if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
-                // Clear cookie
                 document.cookie = 'scheduleData=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                
-                // Reinitialize
-                initializeDates();
                 initializeEmployees();
+                scheduleData.shifts.night.assignments = {};
+                scheduleData.shifts.morning.assignments = {};
+                scheduleData.shifts.late.assignments = {};
+                
+                selectedStartDate = null;
+                selectedEndDate = null;
+                selectedShift = null;
+                
+                renderCalendar();
+                updateSelectedRange();
+                updateAvailableEmployees
+
+            updateAvailableEmployees();
+                updateScheduleOverview();
+                updateSummaryStats();
                 
                 // Reset UI state
-                selectedDate = '';
-                selectedShift = '';
-                document.getElementById('dateSelect').value = '';
-                document.getElementById('shiftTypeSelect').value = '';
-                document.getElementById('requiredPeople').value = '0';
-                document.getElementById('suggestionsPanel').classList.add('hidden');
+                document.querySelectorAll('.shift-type-card').forEach(card => {
+                    card.classList.remove('border-blue-500', 'border-orange-500', 'border-green-500', 'bg-blue-50', 'bg-orange-50', 'bg-green-50');
+                    card.classList.add('border-gray-200');
+                });
                 
-                updateUI();
-                saveData();
+                document.getElementById('availableEmployees').classList.add('hidden');
                 
-                // Show success message
                 alert('All data has been reset successfully!');
             }
         }
 
-        // Initialize Application
-        function initializeApp() {
-            // Try to load saved data, otherwise use defaults
-            if (!loadData()) {
-                initializeDates();
-                initializeEmployees();
-                saveData();
-            }
-            
-            setupEventListeners();
-            updateUI();
-            
-            console.log('Multi-Shift Scheduling System initialized successfully!');
+        // Calendar Navigation
+        function setupCalendarNavigation() {
+            document.getElementById('prevMonth').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+
+            document.getElementById('nextMonth').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
         }
 
-        // Start the application when page loads
-        document.addEventListener('DOMContentLoaded', initializeApp);
+        // Initialize Application
+        function initializeApp() {
+            // Load existing data or initialize with defaults
+            if (!loadData()) {
+                initializeEmployees();
+            }
+
+            // Setup event listeners
+            setupCalendarNavigation();
+            setupShiftSelection();
+            setupScheduleTabs();
+
+            // Initial render
+            renderCalendar();
+            updateScheduleOverview();
+            updateSummaryStats();
+
+            // Set initial active tab
+            document.querySelector('.shift-tab.active').classList.add('bg-white', 'shadow-sm');
+        }
+
+        // Export/Import Functions
+        function exportData() {
+            const dataStr = JSON.stringify(scheduleData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `schedule-data-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    // Validate data structure
+                    if (importedData.employees && importedData.shifts) {
+                        scheduleData = importedData;
+                        saveData();
+                        
+                        // Refresh UI
+                        renderCalendar();
+                        updateScheduleOverview();
+                        updateSummaryStats();
+                        updateAvailableEmployees();
+                        
+                        alert('Data imported successfully!');
+                    } else {
+                        throw new Error('Invalid data format');
+                    }
+                } catch (error) {
+                    alert('Error importing data: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Utility Functions
+        function generateScheduleReport() {
+            let report = "SHIFT SCHEDULE REPORT\n";
+            report += "===================\n\n";
+            
+            ['night', 'morning', 'late'].forEach(shiftType => {
+                const shift = scheduleData.shifts[shiftType];
+                report += `${shift.name} (${shift.time})\n`;
+                report += "-".repeat(shift.name.length + shift.time.length + 3) + "\n";
+                
+                const assignments = shift.assignments;
+                if (Object.keys(assignments).length === 0) {
+                    report += "No assignments\n\n";
+                } else {
+                    Object.keys(assignments).sort().forEach(date => {
+                        if (assignments[date].length > 0) {
+                            report += `${new Date(date).toLocaleDateString()}: ${assignments[date].join(', ')}\n`;
+                        }
+                    });
+                    report += "\n";
+                }
+            });
+            
+            report += "EMPLOYEE SUMMARY\n";
+            report += "===============\n";
+            scheduleData.employees.forEach(emp => {
+                report += `${emp.name} (Group ${emp.group}): ${emp.totalShifts} total shifts\n`;
+                report += `  Night: ${emp.shiftBreakdown.night}, Morning: ${emp.shiftBreakdown.morning}, Late: ${emp.shiftBreakdown.late}\n`;
+            });
+            
+            // Create and download report
+            const reportBlob = new Blob([report], { type: 'text/plain' });
+            const url = URL.createObjectURL(reportBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `schedule-report-${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // Auto-save functionality
+        function startAutoSave() {
+            setInterval(() => {
+                saveData();
+            }, 30000); // Auto-save every 30 seconds
+        }
+
+        // Start the application
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+            startAutoSave();
+        });
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 's':
+                        e.preventDefault();
+                        saveData();
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        if (confirm('Reset all data?')) {
+                            resetAllData();
+                        }
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        exportData();
+                        break;
+                }
+            }
+        });
     </script>
 </body>
 </html>
