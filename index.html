@@ -405,6 +405,13 @@
             }
         }
 
+        // Initialize Application
+        function initializeApp() {
+            // Load existing data or initialize with defaults
+            if (!loadData()) {
+                initializeEmployees();
+            }
+
         // Shift Selection
         function setupShiftSelection() {
             document.querySelectorAll('.shift-type-card').forEach(card => {
