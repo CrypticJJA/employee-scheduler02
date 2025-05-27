@@ -368,8 +368,27 @@
             updateSelectedRange();
             renderCalendar();
             updateAvailableEmployees();
-        }
+            updateScheduleOverview();
+            updateSummaryStats();
 
+            document.querySelectorAll('.shift-type-card').forEach(card => {
+                    card.classList.remove('border-blue-500', 'border-orange-500', 'border-green-500', 'bg-blue-50', 'bg-orange-50', 'bg-green-50');
+                    card.classList.add('border-gray-200');
+                });
+            document.getElementById('availableEmployees').classList.add('hidden');
+            alert('All data has been reset successfully!');
+        }
+        function setupCalendarNavigation() {
+            document.getElementById('prevMonth').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+
+            document.getElementById('nextMonth').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
+        }
         function updateSelectedRange() {
             const rangeDiv = document.getElementById('selectedRange');
             const rangeText = document.getElementById('rangeText');
