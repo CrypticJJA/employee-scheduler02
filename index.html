@@ -986,90 +986,210 @@
             });
         }
 
-        function updateEmployeeStats() {
-            const statsContainer = document.getElementById('employeeStats');
-            statsContainer.innerHTML = '';
-            
-            const sortedEmployees = [...scheduleData.employees].sort((a, b) => b.totalShifts - a.totalShifts);
-            
-            sortedEmployees.forEach(emp => {
-                const statCard = document.createElement('div');
-                statCard.className = 'bg-gray-50 rounded-lg p-4 border border-gray-200';
-                statCard.innerHTML = `
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                            ${emp.name.charAt(0)}
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-gray-800">${emp.name}</h3>
-                            <p class="text-sm text-gray-600">Group ${emp.group}</p>
-                        </div>
+            // Update employee statistics to show profiles instead of shift stats
+function updateEmployeeStats() {
+    const statsContainer = document.getElementById('employeeStats');
+    statsContainer.innerHTML = '';
+    
+    // Add "Add New Employee" button first
+    const addEmployeeCard = document.createElement('div');
+    addEmployeeCard.className = 'bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg p-6 border-2 border-dashed border-blue-300 cursor-pointer hover:from-blue-600 hover:to-purple-600 transition-all';
+    addEmployeeCard.innerHTML = `
+        <div class="text-center text-white">
+            <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            <h3 class="text-lg font-semibold mb-1">Add New Employee</h3>
+            <p class="text-sm opacity-90">Click to add a new team member</p>
+        </div>
+    `;
+    addEmployeeCard.addEventListener('click', showAddEmployeeModal);
+    statsContainer.appendChild(addEmployeeCard);
+    
+    // Add existing employees
+    scheduleData.employees.forEach(emp => {
+        const profileCard = document.createElement('div');
+        profileCard.className = 'bg-white rounded-lg p-4 border border-gray-200 shadow-sm';
+        profileCard.innerHTML = `
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                        ${emp.name.charAt(0)}
                     </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-sm">
-                            <span>Total Shifts:</span>
-                            <span class="font-semibold">${emp.totalShifts}</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2 text-xs">
-                            <div class="text-center">
-                                <div class="font-semibold text-blue-600">${emp.shiftBreakdown.night}</div>
-                                <div class="text-gray-500">Night</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="font-semibold text-orange-600">${emp.shiftBreakdown.morning}</div>
-                                <div class="text-gray-500">Morning</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="font-semibold text-green-600">${emp.shiftBreakdown.late}</div>
-                                <div class="text-gray-500">Late</div>
-                            </div>
-                        </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-800">${emp.name}</h3>
+                        <p class="text-sm text-gray-600">Group ${emp.group}</p>
                     </div>
-                `;
-                
-                statsContainer.appendChild(statCard);
-            });
-        }
+                </div>
+                <button class="text-red-500 hover:text-red-700 text-sm" onclick="deleteEmployee('${emp.name}')">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs font-medium text-gray-600">Full Name</label>
+                    <input type="text" class="w-full p-2 text-sm border border-gray-300 rounded mt-1" 
+                           placeholder="Enter full name" value="${emp.fullName || ''}" 
+                           onchange="updateEmployeeField('${emp.name}', 'fullName', this.value)">
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-gray-600">Phone</label>
+                    <input type="tel" class="w-full p-2 text-sm border border-gray-300 rounded mt-1" 
+                           placeholder="Enter phone number" value="${emp.phone || ''}"
+                           onchange="updateEmployeeField('${emp.name}', 'phone', this.value)">
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-gray-600">Email</label>
+                    <input type="email" class="w-full p-2 text-sm border border-gray-300 rounded mt-1" 
+                           placeholder="Enter email address" value="${emp.email || ''}"
+                           onchange="updateEmployeeField('${emp.name}', 'email', this.value)">
+                </div>
+            </div>
+        `;
+        
+        statsContainer.appendChild(profileCard);
+    });
+}
 
-        // Data Management Functions
-        function exportData() {
-            const dataToExport = {
-                ...scheduleData,
-                exportDate: new Date().toISOString(),
-                workingDays: workingDays
-            };
-            
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
-            const downloadElement = document.createElement('a');
-            downloadElement.setAttribute("href", dataStr);
-            downloadElement.setAttribute("download", `schedule_${new Date().toISOString().split('T')[0]}.json`);
-            document.body.appendChild(downloadElement);
-            downloadElement.click();
-            document.body.removeChild(downloadElement);
-            
-            showNotification('Schedule data exported successfully', 'success');
-        }
+// New function to show add employee modal
+function showAddEmployeeModal() {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg p-6 w-96 max-w-90vw">
+            <h3 class="text-lg font-semibold mb-4">Add New Employee</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Employee Name</label>
+                    <input type="text" id="newEmpName" class="w-full p-2 border border-gray-300 rounded" placeholder="Enter employee name">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Group</label>
+                    <select id="newEmpGroup" class="w-full p-2 border border-gray-300 rounded">
+                        <option value="A">Group A</option>
+                        <option value="B">Group B</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input type="text" id="newEmpFullName" class="w-full p-2 border border-gray-300 rounded" placeholder="Enter full name">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <input type="tel" id="newEmpPhone" class="w-full p-2 border border-gray-300 rounded" placeholder="Enter phone number">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="newEmpEmail" class="w-full p-2 border border-gray-300 rounded" placeholder="Enter email address">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button class="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors" onclick="addNewEmployee()">
+                    Add Employee
+                </button>
+                <button class="flex-1 bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors" onclick="closeModal()">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    document.getElementById('newEmpName').focus();
+}
 
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    
-                    if (importedData.employees && importedData.shifts) {
-                        scheduleData = {
-                            employees: importedData.employees,
-                            shifts: importedData.shifts
-                        };
-                        
-                        updateScheduleOverview();
-                        updateSummaryStats();
-                        updateShiftCounts();
-                        updateEmployeeStats();
-                        updateAvailableEmployees();
+// New function to add employee
+function addNewEmployee() {
+    const name = document.getElementById('newEmpName').value.trim();
+    const group = document.getElementById('newEmpGroup').value;
+    const fullName = document.getElementById('newEmpFullName').value.trim();
+    const phone = document.getElementById('newEmpPhone').value.trim();
+    const email = document.getElementById('newEmpEmail').value.trim();
+    
+    if (!name) {
+        showNotification('Employee name is required', 'error');
+        return;
+    }
+    
+    // Check if employee already exists
+    if (scheduleData.employees.some(emp => emp.name === name)) {
+        showNotification('Employee with this name already exists', 'error');
+        return;
+    }
+    
+    const newEmployee = {
+        name: name,
+        group: group,
+        totalShifts: 0,
+        shiftBreakdown: { night: 0, morning: 0, late: 0 },
+        fullName: fullName,
+        phone: phone,
+        email: email
+    };
+    
+    scheduleData.employees.push(newEmployee);
+    
+    closeModal();
+    updateEmployeeStats();
+    updateSummaryStats();
+    updateAvailableEmployees();
+    
+    showNotification(`${name} added successfully`, 'success');
+}
+
+// New function to close modal
+function closeModal() {
+    const modal = document.querySelector('.fixed.inset-0');
+    if (modal) {
+        document.body.removeChild(modal);
+    }
+}
+
+// New function to update employee field
+function updateEmployeeField(empName, field, value) {
+    const employee = scheduleData.employees.find(emp => emp.name === empName);
+    if (employee) {
+        employee[field] = value;
+        showNotification(`${empName}'s ${field} updated`, 'success');
+    }
+}
+
+// New function to delete employee
+function deleteEmployee(empName) {
+    if (!confirm(`Are you sure you want to delete ${empName}? This will remove them from all shifts.`)) {
+        return;
+    }
+    
+    // Remove from all shifts
+    Object.keys(scheduleData.shifts).forEach(shiftType => {
+        Object.keys(scheduleData.shifts[shiftType].assignments).forEach(date => {
+            const assignments = scheduleData.shifts[shiftType].assignments[date];
+            const index = assignments.indexOf(empName);
+            if (index > -1) {
+                assignments.splice(index, 1);
+                if (assignments.length === 0) {
+                    delete scheduleData.shifts[shiftType].assignments[date];
+                }
+            }
+        });
+    });
+    
+    // Remove from employees array
+    const empIndex = scheduleData.employees.findIndex(emp => emp.name === empName);
+    if (empIndex > -1) {
+        scheduleData.employees.splice(empIndex, 1);
+    }
+    
+    updateEmployeeStats();
+    updateScheduleOverview();
+    updateSummaryStats();
+    updateShiftCounts();
+    updateAvailableEmployees();
+    
+    showNotification(`${empName} deleted successfully`, 'info');
+}
                         
                         showNotification('Schedule data imported successfully', 'success');
                     } else {
