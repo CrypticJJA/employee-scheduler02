@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-Shift Scheduling System</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -90,6 +91,7 @@
             z-index: 1000;
             transform: translateX(100%);
             transition: transform 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
         .notification.show {
@@ -99,64 +101,147 @@
         .notification.success { background: #10b981; }
         .notification.error { background: #ef4444; }
         .notification.info { background: #3b82f6; }
+        
+        .shift-indicator {
+            position: absolute;
+            bottom: 4px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        
+        .shift-indicator.night { background-color: #3730a3; }
+        .shift-indicator.morning { background-color: #f59e0b; }
+        .shift-indicator.late { background-color: #059669; }
+        
+        .stats-bar {
+            height: 6px;
+            border-radius: 3px;
+            margin-top: 4px;
+        }
+        
+        .employee-stat-card {
+            transition: all 0.3s ease;
+        }
+        
+        .employee-stat-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        }
+        
+        .schedule-item {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        @media (max-width: 768px) {
+            .quick-actions-bar {
+                flex-direction: column;
+            }
+            
+            .calendar-day {
+                aspect-ratio: unset;
+                height: 40px;
+            }
+            
+            .employee-stat-card {
+                margin-bottom: 12px;
+            }
+        }
+        
+        .range-selector {
+            background-color: #eff6ff;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .employee-details {
+            display: none;
+            padding-top: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .employee-card.active .employee-details {
+            display: block;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
-    <div class="max-w-7xl mx-auto p-6">
+    <div id="notificationArea" class="fixed top-4 right-4 z-50 w-80"></div>
+
+    <div class="max-w-7xl mx-auto p-4 sm:p-6">
         <!-- Header -->
         <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            <h1 class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
                 Multi-Shift Scheduling System
             </h1>
             <p class="text-gray-600">Manage your team shifts with intelligent scheduling</p>
         </div>
 
         <!-- Quick Actions Bar -->
-        <div class="bg-white rounded-xl shadow-lg p-4 mb-6 flex flex-wrap gap-3 justify-center">
-            <button onclick="exportData()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm font-medium">
-                📊 Export Data
+        <div class="bg-white rounded-xl shadow-lg p-4 mb-6 flex flex-wrap gap-3 justify-center quick-actions-bar">
+            <button onclick="exportData()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center">
+                <i class="fas fa-chart-bar mr-2"></i> Export Data
             </button>
-            <label class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium cursor-pointer">
-                📁 Import Data
-                <input type="file" accept=".json" onchange="importData(event)" class="hidden">
+            <label class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium cursor-pointer flex items-center">
+                <i class="fas fa-file-import mr-2"></i> Import Data
+                <input type="file" accept=".json" class="hidden">
             </label>
-            <button onclick="generateScheduleReport()" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors text-sm font-medium">
-                📋 Generate Report
+            <button onclick="generateScheduleReport()" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors text-sm font-medium flex items-center">
+                <i class="fas fa-file-alt mr-2"></i> Generate Report
             </button>
-            <button onclick="autoAssignShifts()" class="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium">
-                🤖 Auto Assign
-            </button>
-            <button onclick="resetAllData()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm font-medium">
-                🔄 Reset All
+            <button onclick="resetAllData()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm font-medium flex items-center">
+                <i class="fas fa-sync-alt mr-2"></i> Reset All
             </button>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Firebase Connection Status -->
+        <div id="firebaseStatus" class="mb-6 bg-yellow-100 text-yellow-800 p-4 rounded-lg flex items-center">
+            <i class="fas fa-circle-notch fa-spin mr-2"></i>
+            Connecting to Firebase...
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Component 1 - Shift Assignment -->
-            <div class="bg-white rounded-2xl shadow-xl p-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
+            <div class="bg-white rounded-2xl shadow-xl p-5 sm:p-6">
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <i class="fas fa-calendar-plus text-blue-600"></i>
                     Shift Assignment
                 </h2>
 
                 <!-- Date Range Selection -->
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-3">Select Date Range</label>
+                    <div class="range-selector">
+                        <div class="flex justify-between mb-3">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Start Date</label>
+                                <input type="date" id="startDate" class="mt-1 p-2 border rounded-md w-full">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">End Date</label>
+                                <input type="date" id="endDate" class="mt-1 p-2 border rounded-md w-full">
+                            </div>
+                        </div>
+                        <button onclick="applyDateRange()" class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors">
+                            Apply Date Range
+                        </button>
+                    </div>
+                    
                     <div class="bg-gray-50 p-4 rounded-lg">
                         <!-- Calendar Header -->
                         <div class="flex items-center justify-between mb-4">
                             <button id="prevMonth" class="p-2 hover:bg-white rounded-lg transition-colors">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                                </svg>
+                                <i class="fas fa-chevron-left"></i>
                             </button>
-                            <h3 id="currentMonth" class="text-lg font-semibold"></h3>
+                            <h3 id="currentMonth" class="text-lg font-semibold">June 2023</h3>
                             <button id="nextMonth" class="p-2 hover:bg-white rounded-lg transition-colors">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                </svg>
+                                <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>
                         
@@ -172,11 +257,13 @@
                         </div>
                         
                         <!-- Calendar Days -->
-                        <div id="calendarDays" class="calendar-grid"></div>
+                        <div id="calendarDays" class="calendar-grid">
+                            <!-- Calendar will be generated by JavaScript -->
+                        </div>
                         
                         <!-- Selected Range Display -->
-                        <div id="selectedRange" class="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800 hidden">
-                            <strong>Selected:</strong> <span id="rangeText"></span>
+                        <div id="selectedRange" class="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+                            <strong>Selected:</strong> <span id="rangeText">No dates selected</span>
                         </div>
                     </div>
                 </div>
@@ -187,7 +274,9 @@
                     <div class="grid grid-cols-1 gap-3">
                         <div class="shift-type-card p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 transition-all" data-shift="night">
                             <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 shift-night rounded-lg flex items-center justify-center text-white text-xl">🌙</div>
+                                <div class="w-12 h-12 shift-night rounded-lg flex items-center justify-center text-white text-xl">
+                                    <i class="fas fa-moon"></i>
+                                </div>
                                 <div class="flex-1">
                                     <h3 class="font-semibold text-gray-800">Night Shift</h3>
                                     <p class="text-sm text-gray-600">22:30 - 06:30</p>
@@ -197,7 +286,9 @@
                         </div>
                         <div class="shift-type-card p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-orange-500 transition-all" data-shift="morning">
                             <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 shift-morning rounded-lg flex items-center justify-center text-white text-xl">☀️</div>
+                                <div class="w-12 h-12 shift-morning rounded-lg flex items-center justify-center text-white text-xl">
+                                    <i class="fas fa-sun"></i>
+                                </div>
                                 <div class="flex-1">
                                     <h3 class="font-semibold text-gray-800">Morning Shift</h3>
                                     <p class="text-sm text-gray-600">06:30 - 14:30</p>
@@ -207,7 +298,9 @@
                         </div>
                         <div class="shift-type-card p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-green-500 transition-all" data-shift="late">
                             <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 shift-late rounded-lg flex items-center justify-center text-white text-xl">🌆</div>
+                                <div class="w-12 h-12 shift-late rounded-lg flex items-center justify-center text-white text-xl">
+                                    <i class="fas fa-building"></i>
+                                </div>
                                 <div class="flex-1">
                                     <h3 class="font-semibold text-gray-800">Late Shift</h3>
                                     <p class="text-sm text-gray-600">14:30 - 22:30</p>
@@ -219,46 +312,45 @@
                 </div>
 
                 <!-- Available Employees -->
-                <div id="availableEmployees" class="hidden animate-fade-in">
+                <div id="availableEmployees" class="animate-fade-in">
                     <div class="flex items-center justify-between mb-4">
                         <label class="text-sm font-medium text-gray-700">Available Employees</label>
                         <div class="flex gap-2">
-                            <button id="smartAssignBtn" class="text-sm bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
-                                🧠 Smart Assign
-                            </button>
-                            <button id="assignAllBtn" class="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                                Assign All
+                            <button id="manualAssignBtn" class="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-user-check mr-1"></i> Assign Selected
                             </button>
                         </div>
                     </div>
-                    <div id="employeesList" class="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto"></div>
+                    <div id="employeesList" class="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto pr-2">
+                        <!-- Employee cards will be generated here -->
+                    </div>
                 </div>
             </div>
 
             <!-- Component 2 - Schedule Overview -->
-            <div class="bg-white rounded-2xl shadow-xl p-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
+            <div class="bg-white rounded-2xl shadow-xl p-5 sm:p-6">
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <i class="fas fa-calendar-check text-green-600"></i>
                     Schedule Overview
                 </h2>
 
                 <!-- Shift Tabs -->
                 <div class="flex bg-gray-100 rounded-lg p-1 mb-6">
                     <button class="shift-tab flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all active" data-shift="night">
-                        🌙 Night Shift
+                        <i class="fas fa-moon mr-1"></i> Night Shift
                     </button>
                     <button class="shift-tab flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all" data-shift="morning">
-                        ☀️ Morning Shift
+                        <i class="fas fa-sun mr-1"></i> Morning Shift
                     </button>
                     <button class="shift-tab flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all" data-shift="late">
-                        🌆 Late Shift
+                        <i class="fas fa-building mr-1"></i> Late Shift
                     </button>
                 </div>
 
                 <!-- Schedule Content -->
-                <div id="scheduleContent" class="space-y-4 max-h-96 overflow-y-auto"></div>
+                <div id="scheduleContent" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                    <!-- Schedule items will be generated here -->
+                </div>
 
                 <!-- Summary Stats -->
                 <div class="mt-6 grid grid-cols-3 gap-4">
@@ -279,751 +371,80 @@
         </div>
 
         <!-- Employee Management Panel -->
-        <div class="mt-8 bg-white rounded-2xl shadow-xl p-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
+        <div class="mt-8 bg-white rounded-2xl shadow-xl p-5 sm:p-6">
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <i class="fas fa-chart-line text-indigo-600"></i>
                 Employee Statistics
             </h2>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="employeeStats"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="employeeStats">
+                <!-- Employee stats cards will be generated here -->
+            </div>
         </div>
     </div>
 
     <script>
-        // Application State
-        let scheduleData = {
-            employees: [],
-            shifts: {
-                night: { name: 'Night Shift', time: '22:30-06:30', icon: '🌙', assignments: {} },
-                morning: { name: 'Morning Shift', time: '06:30-14:30', icon: '☀️', assignments: {} },
-                late: { name: 'Late Shift', time: '14:30-22:30', icon: '🌆', assignments: {} }
-            }
+        // Firebase configuration - replace with your own config
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4R6MK7a8n6WQdR9q8V7s7V7dXgY7Y7Y7",
+            authDomain: "shift-scheduler-demo.firebaseapp.com",
+            projectId: "shift-scheduler-demo",
+            storageBucket: "shift-scheduler-demo.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:abc123def456"
         };
 
-        let currentDate = new Date(2025, 5, 1); // June 2025
-        let selectedStartDate = null;
-        let selectedEndDate = null;
-        let selectedShift = null;
-        let activeTab = 'night';
-
-        // Working days in June 2025
-        const workingDays = [
-            '2025-06-02', '2025-06-03', '2025-06-04', '2025-06-05', '2025-06-06',
-            '2025-06-09', '2025-06-10', '2025-06-11', '2025-06-12', '2025-06-13',
-            '2025-06-16', '2025-06-17', '2025-06-18', '2025-06-19', '2025-06-20',
-            '2025-06-23', '2025-06-24'
-        ];
-
-        // Initialize default employees
-        function initializeEmployees() {
-            const defaultEmployees = [
-                { name: 'Abhiram R', group: 'A' },
-                { name: 'Devaganga K', group: 'A' },
-                { name: 'Kavya M', group: 'A' },
-                { name: 'Adarsh J', group: 'A' },
-                { name: 'Divya S', group: 'A' },
-                { name: 'Aleena J', group: 'A' },
-                { name: 'Emily E', group: 'B' },
-                { name: 'Sanjay G', group: 'B' },
-                { name: 'Jefferson A', group: 'B' },
-                { name: 'Jerome B', group: 'B' },
-                { name: 'Aswathi P', group: 'B' },
-                { name: 'Joseph J', group: 'B' },
-                { name: 'Tilmeezur R', group: 'C' },
-                { name: 'Justyna S', group: 'C' },
-                { name: 'Vishnu B', group: 'C' },
-                { name: 'Bony R', group: 'C' },
-                { name: 'Kattackakathu N', group: 'C' }
-            ];
-
-            scheduleData.employees = defaultEmployees.map(emp => ({
-                ...emp,
-                totalShifts: 0,
-                shiftBreakdown: { night: 0, morning: 0, late: 0 }
-            }));
-        }
-
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // Update Firebase status
+        document.getElementById('firebaseStatus').innerHTML = '<i class="fas fa-check-circle text-green-500 mr-2"></i> Connected to Firebase';
+        document.getElementById('firebaseStatus').classList.remove('bg-yellow-100', 'text-yellow-800');
+        document.getElementById('firebaseStatus').classList.add('bg-green-100', 'text-green-800');
+        
         // Notification system
         function showNotification(message, type = 'info') {
+            const notificationArea = document.getElementById('notificationArea');
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} mr-2"></i>
+                    ${message}
+                </div>
+            `;
             
-            setTimeout(() => notification.classList.add('show'), 100);
+            notificationArea.appendChild(notification);
+            
+            // Trigger the animation
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            // Remove notification after 3 seconds
             setTimeout(() => {
                 notification.classList.remove('show');
-                setTimeout(() => document.body.removeChild(notification), 300);
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
             }, 3000);
         }
-
-        // Calendar Functions
-        function formatDate(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        function isWorkingDay(dateStr) {
-            return workingDays.includes(dateStr);
-        }
-
-        function isDateInRange(date, start, end) {
-            if (!start || !end) return false;
-            return date >= start && date <= end;
-        }
-
+        
+        // Calendar functionality
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let selectedDates = [];
+        let selectedShift = '';
+        let startDate = null;
+        let endDate = null;
+        
         function renderCalendar() {
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            
-            document.getElementById('currentMonth').textContent = 
-                new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate);
-
-            const firstDay = new Date(year, month, 1);
-            const lastDay = new Date(year, month + 1, 0);
-            const startDate = new Date(firstDay);
-            startDate.setDate(startDate.getDate() - firstDay.getDay());
-
             const calendarDays = document.getElementById('calendarDays');
+            const currentMonthElement = document.getElementById('currentMonth');
+            
+            // Clear existing calendar
             calendarDays.innerHTML = '';
-
-            for (let i = 0; i < 42; i++) {
-                const date = new Date(startDate);
-                date.setDate(startDate.getDate() + i);
-                
-                const dateStr = formatDate(date);
-                const isCurrentMonth = date.getMonth() === month;
-                const isWorking = isWorkingDay(dateStr);
-                const isSelected = (selectedStartDate && date.getTime() === selectedStartDate.getTime()) ||
-                                  (selectedEndDate && date.getTime() === selectedEndDate.getTime());
-                const isInRange = selectedStartDate && selectedEndDate && 
-                                  isDateInRange(date, selectedStartDate, selectedEndDate);
-
-                const dayElement = document.createElement('div');
-                dayElement.className = 'calendar-day';
-                dayElement.textContent = date.getDate();
-                dayElement.dataset.date = dateStr;
-
-                if (!isCurrentMonth || !isWorking) {
-                    dayElement.classList.add('disabled');
-                } else {
-                    if (isSelected) {
-                        dayElement.classList.add(selectedStartDate && date.getTime() === selectedStartDate.getTime() ? 'start-range' : 'end-range');
-                    } else if (isInRange) {
-                        dayElement.classList.add('in-range');
-                    }
-
-                    dayElement.addEventListener('click', () => selectDate(date));
-                }
-
-                calendarDays.appendChild(dayElement);
-            }
-        }
-
-        function selectDate(date) {
-            if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
-                selectedStartDate = new Date(date);
-                selectedEndDate = null;
-            } else {
-                if (date < selectedStartDate) {
-                    selectedEndDate = selectedStartDate;
-                    selectedStartDate = new Date(date);
-                } else {
-                    selectedEndDate = new Date(date);
-                }
-            }
-
-            updateSelectedRange();
-            renderCalendar();
-            updateAvailableEmployees();
-            updateScheduleOverview();
-            updateSummaryStats();
-            updateShiftCounts();
-        }
-
-        function updateSelectedRange() {
-            const rangeDiv = document.getElementById('selectedRange');
-            const rangeText = document.getElementById('rangeText');
-
-            if (selectedStartDate) {
-                if (selectedEndDate) {
-                    rangeText.textContent = `${selectedStartDate.toLocaleDateString()} - ${selectedEndDate.toLocaleDateString()}`;
-                } else {
-                    rangeText.textContent = selectedStartDate.toLocaleDateString();
-                }
-                rangeDiv.classList.remove('hidden');
-            } else {
-                rangeDiv.classList.add('hidden');
-            }
-        }
-
-        // Calendar Navigation
-        function setupCalendarNavigation() {
-            document.getElementById('prevMonth').addEventListener('click', () => {
-                currentDate.setMonth(currentDate.getMonth() - 1);
-                renderCalendar();
-            });
-
-            document.getElementById('nextMonth').addEventListener('click', () => {
-                currentDate.setMonth(currentDate.getMonth() + 1);
-                renderCalendar();
-            });
-        }
-
-        // Shift Selection
-        function setupShiftSelection() {
-            document.querySelectorAll('.shift-type-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    document.querySelectorAll('.shift-type-card').forEach(c => {
-                        c.classList.remove('border-blue-500', 'border-orange-500', 'border-green-500', 'bg-blue-50', 'bg-orange-50', 'bg-green-50');
-                        c.classList.add('border-gray-200');
-                    });
-
-                    const shift = card.dataset.shift;
-                    selectedShift = shift;
-                    
-                    if (shift === 'night') {
-                        card.classList.add('border-blue-500', 'bg-blue-50');
-                    } else if (shift === 'morning') {
-                        card.classList.add('border-orange-500', 'bg-orange-50');
-                    } else if (shift === 'late') {
-                        card.classList.add('border-green-500', 'bg-green-50');
-                    }
-
-                    updateAvailableEmployees();
-                });
-            });
-        }
-
-        // Employee Management
-        function updateAvailableEmployees() {
-            const container = document.getElementById('availableEmployees');
-            const employeesList = document.getElementById('employeesList');
-
-            if (!selectedStartDate || !selectedShift) {
-                container.classList.add('hidden');
-                return;
-            }
-
-            container.classList.remove('hidden');
-            employeesList.innerHTML = '';
-
-            const dateRange = getDateRange(selectedStartDate, selectedEndDate || selectedStartDate);
-            const availableEmployees = getAvailableEmployees(dateRange, selectedShift);
-
-            availableEmployees.forEach(emp => {
-                const empDiv = document.createElement('div');
-                empDiv.className = 'employee-card p-3 border-2 border-gray-200 rounded-lg flex items-center justify-between';
-                empDiv.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                            ${emp.name.charAt(0)}
-                        </div>
-                        <div>
-                            <div class="font-medium text-gray-800">${emp.name}</div>
-                            <div class="text-sm text-gray-600">Group ${emp.group} • ${emp.totalShifts} shifts</div>
-                        </div>
-                    </div>
-                    <button class="assign-btn bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm" data-employee="${emp.name}">
-                        Assign
-                    </button>
-                `;
-
-                empDiv.querySelector('.assign-btn').addEventListener('click', () => {
-                    assignEmployeeToShift(emp.name, dateRange, selectedShift);
-                });
-
-                employeesList.appendChild(empDiv);
-            });
-
-            // Assign buttons
-            document.getElementById('assignAllBtn').onclick = () => {
-                availableEmployees.forEach(emp => {
-                    assignEmployeeToShift(emp.name, dateRange, selectedShift);
-                });
-            };
-
-            document.getElementById('smartAssignBtn').onclick = () => {
-                smartAssignEmployees(dateRange, selectedShift);
-            };
-        }
-
-        function getDateRange(start, end) {
-            const dates = [];
-            const current = new Date(start);
             
-            while (current <= end) {
-                const dateStr = formatDate(current);
-                if (isWorkingDay(dateStr)) {
-                    dates.push(dateStr);
-                }
-                current.setDate(current.getDate() + 1);
-            }
-            
-            return dates;
-        }
-
-        function getAvailableEmployees(dateRange, shiftType) {
-            return scheduleData.employees.filter(emp => {
-                return !dateRange.some(date => {
-                    const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
-                    return assignments.includes(emp.name);
-                });
-            }).sort((a, b) => a.totalShifts - b.totalShifts);
-        }
-
-        function assignEmployeeToShift(employeeName, dateRange, shiftType) {
-            let assignedCount = 0;
-            dateRange.forEach(date => {
-                if (!scheduleData.shifts[shiftType].assignments[date]) {
-                    scheduleData.shifts[shiftType].assignments[date] = [];
-                }
-                
-                if (!scheduleData.shifts[shiftType].assignments[date].includes(employeeName)) {
-                    scheduleData.shifts[shiftType].assignments[date].push(employeeName);
-                    assignedCount++;
-                    
-                    
-                    const employee = scheduleData.employees.find(emp => emp.name === employeeName);
-                    if (employee) {
-                        employee.totalShifts++;
-                        employee.shiftBreakdown[shiftType]++;
-                    }
-                }
-            });
-
-            if (assignedCount > 0) {
-                showNotification(`${employeeName} assigned to ${assignedCount} ${shiftType} shift(s)`, 'success');
-
-            // CONTINUATION FROM: showNotification(`${employeeName} assigned to ${assignedCount} ${shiftType} shift(s)`, 'success');
-
-                updateAvailableEmployees();
-                updateScheduleOverview();
-                updateSummaryStats();
-                updateShiftCounts();
-                updateEmployeeStats();
-            }
-        }
-
-        function smartAssignEmployees(dateRange, shiftType) {
-            const availableEmployees = getAvailableEmployees(dateRange, shiftType);
-            const employeesPerDay = Math.ceil(availableEmployees.length / dateRange.length);
-            
-            // Sort employees by total shifts (ascending) to balance workload
-            availableEmployees.sort((a, b) => a.totalShifts - b.totalShifts);
-            
-            let assignmentIndex = 0;
-            dateRange.forEach(date => {
-                for (let i = 0; i < Math.min(employeesPerDay, availableEmployees.length - assignmentIndex); i++) {
-                    const employee = availableEmployees[assignmentIndex + i];
-                    assignEmployeeToShift(employee.name, [date], shiftType);
-                }
-                assignmentIndex += employeesPerDay;
-                if (assignmentIndex >= availableEmployees.length) assignmentIndex = 0;
-            });
-            
-            showNotification(`Smart assignment completed for ${shiftType} shift`, 'success');
-        }
-
-        // Schedule Overview Functions
-        function setupShiftTabs() {
-            document.querySelectorAll('.shift-tab').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    document.querySelectorAll('.shift-tab').forEach(t => {
-                        t.classList.remove('active', 'bg-white', 'text-blue-600', 'shadow-sm');
-                        t.classList.add('text-gray-600');
-                    });
-                    
-                    tab.classList.add('active', 'bg-white', 'text-blue-600', 'shadow-sm');
-                    tab.classList.remove('text-gray-600');
-                    
-                    activeTab = tab.dataset.shift;
-                    updateScheduleOverview();
-                });
-            });
-        }
-
-        function updateScheduleOverview() {
-            const scheduleContent = document.getElementById('scheduleContent');
-            const shiftData = scheduleData.shifts[activeTab];
-            
-            scheduleContent.innerHTML = '';
-            
-            const sortedDates = Object.keys(shiftData.assignments).sort();
-            
-            if (sortedDates.length === 0) {
-                scheduleContent.innerHTML = `
-                    <div class="text-center py-12 text-gray-500">
-                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        <p class="text-lg font-medium mb-2">No ${shiftData.name} assignments yet</p>
-                        <p class="text-sm">Select dates and assign employees to get started</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            sortedDates.forEach(date => {
-                const assignments = shiftData.assignments[date] || [];
-                const dateObj = new Date(date + 'T00:00:00');
-                
-                const dateDiv = document.createElement('div');
-                dateDiv.className = 'bg-gray-50 rounded-lg p-4 border border-gray-200';
-                dateDiv.innerHTML = `
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-semibold text-gray-800">
-                            ${dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                        </h3>
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm text-gray-600">${assignments.length} assigned</span>
-                            <button class="text-red-500 hover:text-red-700 text-sm font-medium" onclick="clearDateAssignments('${date}', '${activeTab}')">
-                                Clear All
-                            </button>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        ${assignments.map(empName => {
-                            const employee = scheduleData.employees.find(e => e.name === empName);
-                            return `
-                                <div class="flex items-center justify-between bg-white p-2 rounded border">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
-                                            ${empName.charAt(0)}
-                                        </div>
-                                        <span class="text-sm font-medium">${empName}</span>
-                                        <span class="text-xs text-gray-500">Group ${employee?.group || 'N/A'}</span>
-                                    </div>
-                                    <button class="text-red-500 hover:text-red-700 text-xs" onclick="removeEmployeeFromShift('${empName}', '${date}', '${activeTab}')">
-                                        Remove
-                                    </button>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
-                
-                scheduleContent.appendChild(dateDiv);
-            });
-        }
-
-        function clearDateAssignments(date, shiftType) {
-            const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
-            
-            assignments.forEach(empName => {
-                const employee = scheduleData.employees.find(emp => emp.name === empName);
-                if (employee) {
-                    employee.totalShifts--;
-                    employee.shiftBreakdown[shiftType]--;
-                }
-            });
-            
-            delete scheduleData.shifts[shiftType].assignments[date];
-            
-            updateScheduleOverview();
-            updateSummaryStats();
-            updateShiftCounts();
-            updateEmployeeStats();
-            updateAvailableEmployees();
-            
-            showNotification(`Cleared all assignments for ${new Date(date + 'T00:00:00').toLocaleDateString()}`, 'info');
-        }
-
-        function removeEmployeeFromShift(empName, date, shiftType) {
-            const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
-            const index = assignments.indexOf(empName);
-            
-            if (index > -1) {
-                assignments.splice(index, 1);
-                
-                const employee = scheduleData.employees.find(emp => emp.name === empName);
-                if (employee) {
-                    employee.totalShifts--;
-                    employee.shiftBreakdown[shiftType]--;
-                }
-                
-                if (assignments.length === 0) {
-                    delete scheduleData.shifts[shiftType].assignments[date];
-                }
-                
-                updateScheduleOverview();
-                updateSummaryStats();
-                updateShiftCounts();
-                updateEmployeeStats();
-                updateAvailableEmployees();
-                
-                showNotification(`${empName} removed from shift`, 'info');
-            }
-        }
-
-        // Statistics Functions
-        function updateSummaryStats() {
-            const totalEmployees = scheduleData.employees.length;
-            const totalAssignments = Object.values(scheduleData.shifts).reduce((total, shift) => {
-                return total + Object.values(shift.assignments).reduce((shiftTotal, assignments) => {
-                    return shiftTotal + assignments.length;
-                }, 0);
-            }, 0);
-            
-            const avgShifts = totalEmployees > 0 ? (totalAssignments / totalEmployees).toFixed(1) : 0;
-            
-            document.getElementById('totalEmployees').textContent = totalEmployees;
-            document.getElementById('totalAssignments').textContent = totalAssignments;
-            document.getElementById('avgShifts').textContent = avgShifts;
-        }
-
-        function updateShiftCounts() {
-            Object.keys(scheduleData.shifts).forEach(shiftType => {
-                const count = Object.values(scheduleData.shifts[shiftType].assignments).reduce((total, assignments) => {
-                    return total + assignments.length;
-                }, 0);
-                document.getElementById(`${shiftType}Count`).textContent = `${count} assigned`;
-            });
-        }
-
-        function updateEmployeeStats() {
-            const statsContainer = document.getElementById('employeeStats');
-            statsContainer.innerHTML = '';
-            
-            const sortedEmployees = [...scheduleData.employees].sort((a, b) => b.totalShifts - a.totalShifts);
-            
-            sortedEmployees.forEach(emp => {
-                const statCard = document.createElement('div');
-                statCard.className = 'bg-gray-50 rounded-lg p-4 border border-gray-200';
-                statCard.innerHTML = `
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                            ${emp.name.charAt(0)}
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-gray-800">${emp.name}</h3>
-                            <p class="text-sm text-gray-600">Group ${emp.group}</p>
-                        </div>
-                    </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-sm">
-                            <span>Total Shifts:</span>
-                            <span class="font-semibold">${emp.totalShifts}</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2 text-xs">
-                            <div class="text-center">
-                                <div class="font-semibold text-blue-600">${emp.shiftBreakdown.night}</div>
-                                <div class="text-gray-500">Night</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="font-semibold text-orange-600">${emp.shiftBreakdown.morning}</div>
-                                <div class="text-gray-500">Morning</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="font-semibold text-green-600">${emp.shiftBreakdown.late}</div>
-                                <div class="text-gray-500">Late</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                statsContainer.appendChild(statCard);
-            });
-        }
-
-        // Data Management Functions
-        function exportData() {
-            const dataToExport = {
-                ...scheduleData,
-                exportDate: new Date().toISOString(),
-                workingDays: workingDays
-            };
-            
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
-            const downloadElement = document.createElement('a');
-            downloadElement.setAttribute("href", dataStr);
-            downloadElement.setAttribute("download", `schedule_${new Date().toISOString().split('T')[0]}.json`);
-            document.body.appendChild(downloadElement);
-            downloadElement.click();
-            document.body.removeChild(downloadElement);
-            
-            showNotification('Schedule data exported successfully', 'success');
-        }
-
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    
-                    if (importedData.employees && importedData.shifts) {
-                        scheduleData = {
-                            employees: importedData.employees,
-                            shifts: importedData.shifts
-                        };
-                        
-                        updateScheduleOverview();
-                        updateSummaryStats();
-                        updateShiftCounts();
-                        updateEmployeeStats();
-                        updateAvailableEmployees();
-                        
-                        showNotification('Schedule data imported successfully', 'success');
-                    } else {
-                        throw new Error('Invalid file format');
-                    }
-                } catch (error) {
-                    showNotification('Error importing data: Invalid file format', 'error');
-                }
-            };
-            reader.readAsText(file);
-            
-            // Reset file input
-            event.target.value = '';
-        }
-
-        function generateScheduleReport() {
-            let report = "SHIFT SCHEDULE REPORT\n";
-            report += "=".repeat(50) + "\n";
-            report += `Generated: ${new Date().toLocaleString()}\n\n`;
-            
-            // Summary
-            report += "SUMMARY:\n";
-            report += `-`.repeat(20) + "\n";
-            report += `Total Employees: ${scheduleData.employees.length}\n`;
-            report += `Total Assignments: ${Object.values(scheduleData.shifts).reduce((total, shift) => {
-                return total + Object.values(shift.assignments).reduce((shiftTotal, assignments) => {
-                    return shiftTotal + assignments.length;
-                }, 0);
-            }, 0)}\n\n`;
-            
-            // Each shift type
-            Object.keys(scheduleData.shifts).forEach(shiftType => {
-                const shift = scheduleData.shifts[shiftType];
-                report += `${shift.name.toUpperCase()} (${shift.time}):\n`;
-                
-                const sortedDates = Object.keys(shift.assignments).sort();
-                if (sortedDates.length === 0) {
-                    report += "No assignments\n\n";
-                } else {
-                    const startDate = new Date(sortedDates[0] + 'T00:00:00');
-                    const endDate = new Date(sortedDates[sortedDates.length - 1] + 'T00:00:00');
-                    
-                    const formatOptions = { weekday: 'short', month: 'short', day: 'numeric' };
-                    const startStr = startDate.toLocaleDateString('en-US', formatOptions);
-                    const endStr = endDate.toLocaleDateString('en-US', formatOptions);
-                    report += `Assignments: ${startStr} – ${endStr}\n\n`;
-                }
-
-            
-            // Employee statistics
-            report += "EMPLOYEE STATISTICS:\n";
-            report += `-`.repeat(30) + "\n";
-            const sortedEmployees = [...scheduleData.employees].sort((a, b) => b.totalShifts - a.totalShifts);
-            sortedEmployees.forEach(emp => {
-                report += `${emp.name} (Group ${emp.group}): ${emp.totalShifts} shifts `;
-                report += `(Night: ${emp.shiftBreakdown.night}, Morning: ${emp.shiftBreakdown.morning}, Late: ${emp.shiftBreakdown.late})\n`;
-            });
-            
-            // Download report
-            const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(report);
-            const downloadElement = document.createElement('a');
-            downloadElement.setAttribute("href", dataStr);
-            downloadElement.setAttribute("download", `schedule_report_${new Date().toISOString().split('T')[0]}.txt`);
-            document.body.appendChild(downloadElement);
-            downloadElement.click();
-            document.body.removeChild(downloadElement);
-            
-            showNotification('Schedule report generated and downloaded', 'success');
-        }
-
-        function autoAssignShifts() {
-            if (!confirm('This will automatically assign employees to all available shifts. Continue?')) {
-                return;
-            }
-            
-            let totalAssignments = 0;
-            
-            // For each working day, assign employees to each shift type
-            workingDays.forEach(date => {
-                Object.keys(scheduleData.shifts).forEach(shiftType => {
-                    const availableEmployees = scheduleData.employees.filter(emp => {
-                        const assignments = scheduleData.shifts[shiftType].assignments[date] || [];
-                        return !assignments.includes(emp.name);
-                    }).sort((a, b) => a.totalShifts - b.totalShifts);
-                    
-                    // Assign 2-3 employees per shift based on availability
-                    const employeesToAssign = Math.min(3, availableEmployees.length);
-                    for (let i = 0; i < employeesToAssign; i++) {
-                        assignEmployeeToShift(availableEmployees[i].name, [date], shiftType);
-                        totalAssignments++;
-                    }
-                });
-            });
-            
-            showNotification(`Auto-assignment completed: ${totalAssignments} assignments made`, 'success');
-        }
-
-        function resetAllData() {
-            if (!confirm('This will reset all schedule data. Are you sure?')) {
-                return;
-            }
-            
-            // Reset assignments
-            Object.keys(scheduleData.shifts).forEach(shiftType => {
-                scheduleData.shifts[shiftType].assignments = {};
-            });
-            
-            // Reset employee stats
-            scheduleData.employees.forEach(emp => {
-                emp.totalShifts = 0;
-                emp.shiftBreakdown = { night: 0, morning: 0, late: 0 };
-            });
-            
-            // Reset UI state
-            selectedStartDate = null;
-            selectedEndDate = null;
-            selectedShift = null;
-            
-            // Update all UI components
-            renderCalendar();
-            updateScheduleOverview();
-            updateSummaryStats();
-            updateShiftCounts();
-            updateEmployeeStats();
-            updateAvailableEmployees();
-            updateSelectedRange();
-            
-            // Reset shift selection
-            document.querySelectorAll('.shift-type-card').forEach(card => {
-                card.classList.remove('border-blue-500', 'border-orange-500', 'border-green-500', 'bg-blue-50', 'bg-orange-50', 'bg-green-50');
-                card.classList.add('border-gray-200');
-            });
-            
-            showNotification('All data has been reset', 'info');
-        }
-
-        // Initialize Application
-        function initializeApp() {
-            initializeEmployees();
-            setupCalendarNavigation();
-            setupShiftSelection();
-            setupShiftTabs();
-            renderCalendar();
-            updateScheduleOverview();
-            updateSummaryStats();
-            updateShiftCounts();
-            updateEmployeeStats();
-            
-            // Set initial active tab
-            document.querySelector('.shift-tab[data-shift="night"]').classList.add('active', 'bg-white', 'text-blue-600', 'shadow-sm');
-            document.querySelector('.shift-tab[data-shift="night"]').classList.remove('text-gray-600');
-        }
-
-        // Start the application when the page loads
-        document.addEventListener('DOMContentLoaded', initializeApp);
-    </script>
-</body>
-</html>
+            // Set current month header
+            const monthNames = ["January",
