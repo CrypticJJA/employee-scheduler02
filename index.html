@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-Shift Scheduling System</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
     <style>
         .shift-night { background: linear-gradient(135deg, #1e3a8a, #3730a3); }
         .shift-morning { background: linear-gradient(135deg, #f59e0b, #d97706); }
@@ -897,7 +903,6 @@
             Object.keys(scheduleData.shifts).forEach(shiftType => {
                 const shift = scheduleData.shifts[shiftType];
                 report += `${shift.name.toUpperCase()} (${shift.time}):\n`;
-                report += `-`.repeat(30) + "\n";
                 
                 const sortedDates = Object.keys(shift.assignments).sort();
                 if (sortedDates.length === 0) {
@@ -906,7 +911,6 @@
                     sortedDates.forEach(date => {
                         const dateObj = new Date(date + 'T00:00:00');
                         report += `${dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}: `;
-                        report += shift.assignments[date].join(', ') + "\n";
                     });
                     report += "\n";
                 }
