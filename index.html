@@ -438,7 +438,8 @@
         let selectedShift = '';
         let startDate = null;
         let endDate = null;
-        
+// ... (previous script content) ...
+
         function renderCalendar() {
             const calendarDays = document.getElementById('calendarDays');
             const currentMonthElement = document.getElementById('currentMonth');
@@ -447,4 +448,493 @@
             calendarDays.innerHTML = '';
             
             // Set current month header
-            const monthNames = ["January",
+            const monthNames = ["January", "February", "March", "April", "May", "June",
+                                "July", "August", "September", "October", "November", "December"];
+            currentMonthElement.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+            
+            // Get first day of month and total days
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
+            // Create blank days for previous month
+            for (let i = 0; i < firstDay; i++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day disabled';
+                calendarDays.appendChild(dayElement);
+            }
+            
+            // Create days for current month
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                dayElement.textContent = i;
+                
+                const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+                dayElement.dataset.date = dateStr;
+                
+                // Highlight if in selected range
+                if (startDate && endDate) {
+                    const currentDate = new Date(dateStr);
+                    if (currentDate >= startDate && currentDate <= endDate) {
+                        dayElement.classList.add('in-range');
+                        if (dateStr === formatDate(startDate)) dayElement.classList.add('start-range');
+                        if (dateStr === formatDate(endDate)) dayElement.classList.add('end-range');
+                    }
+                }
+                
+                // Add shift indicators
+                const shiftIndicators = document.createElement('div');
+                shiftIndicators.className = 'flex justify-center gap-1 absolute bottom-2 w-full';
+                dayElement.appendChild(shiftIndicators);
+                
+                dayElement.addEventListener('click', () => selectDate(dayElement, dateStr));
+                calendarDays.appendChild(dayElement);
+            }
+            
+            // Update shift indicators
+            updateCalendarShiftIndicators();
+        }
+        
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+        
+        function selectDate(element, dateStr) {
+            const date = new Date(dateStr);
+            
+            if (!startDate || (startDate && endDate)) {
+                // Start new selection
+                startDate = date;
+                endDate = null;
+                selectedDates = [dateStr];
+                resetCalendarSelection();
+                element.classList.add('start-range');
+            } else {
+                // Complete the range
+                endDate = date;
+                
+                // Get all dates between start and end
+                selectedDates = [];
+                let current = new Date(startDate);
+                const end = new Date(endDate);
+                
+                while (current <= end) {
+                    selectedDates.push(formatDate(current));
+                    current.setDate(current.getDate() + 1);
+                }
+                
+                // Update calendar display
+                resetCalendarSelection();
+                highlightSelectedRange();
+            }
+            
+            // Update selected range display
+            if (startDate && endDate) {
+                document.getElementById('rangeText').textContent = 
+                    `${formatDate(startDate)} to ${formatDate(endDate)} (${selectedDates.length} days)`;
+            } else if (startDate) {
+                document.getElementById('rangeText').textContent = 
+                    `${formatDate(startDate)} (Select end date)`;
+            }
+        }
+        
+        function resetCalendarSelection() {
+            document.querySelectorAll('.calendar-day').forEach(day => {
+                day.classList.remove('start-range', 'end-range', 'in-range');
+            });
+        }
+        
+        function highlightSelectedRange() {
+            document.querySelectorAll('.calendar-day').forEach(day => {
+                if (day.dataset.date) {
+                    const date = new Date(day.dataset.date);
+                    
+                    if (date >= startDate && date <= endDate) {
+                        day.classList.add('in-range');
+                        if (formatDate(date) === formatDate(startDate)) day.classList.add('start-range');
+                        if (formatDate(date) === formatDate(endDate)) day.classList.add('end-range');
+                    }
+                }
+            });
+        }
+        
+        function updateCalendarShiftIndicators() {
+            // This would normally fetch data from Firestore
+            // For demo, we'll add random indicators
+            document.querySelectorAll('.calendar-day:not(.disabled)').forEach(day => {
+                const indicators = day.querySelector('.flex.justify-center');
+                indicators.innerHTML = '';
+                
+                // Randomly add shift indicators (for demo)
+                const shifts = [];
+                if (Math.random() > 0.7) shifts.push('night');
+                if (Math.random() > 0.7) shifts.push('morning');
+                if (Math.random() > 0.7) shifts.push('late');
+                
+                shifts.forEach(shift => {
+                    const indicator = document.createElement('div');
+                    indicator.className = `shift-indicator ${shift}`;
+                    indicators.appendChild(indicator);
+                });
+            });
+        }
+        
+        // Employee data
+        const employees = [
+            { id: 'e1', name: 'John Smith', position: 'Nurse', shifts: { night: 0, morning: 0, late: 0 }, status: 'active' },
+            { id: 'e2', name: 'Sarah Johnson', position: 'Doctor', shifts: { night: 0, morning: 0, late: 0 }, status: 'active' },
+            { id: 'e3', name: 'Michael Brown', position: 'Technician', shifts: { night: 0, morning: 0, late: 0 }, status: 'active' },
+            { id: 'e4', name: 'Emily Davis', position: 'Nurse', shifts: { night: 0, morning: 0, late: 0 }, status: 'active' },
+            { id: 'e5', name: 'David Wilson', position: 'Receptionist', shifts: { night: 0, morning: 0, late: 0 }, status: 'active' },
+            { id: 'e6', name: 'Jennifer Miller', position: 'Nurse', shifts: { night: 0, morning: 0, late: 0 }, status: 'on leave' }
+        ];
+        
+        // Initialize UI
+        function initializeUI() {
+            renderCalendar();
+            renderEmployeeList();
+            renderEmployeeStats();
+            updateShiftCounts();
+            renderScheduleOverview();
+            
+            // Event listeners
+            document.getElementById('prevMonth').addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                renderCalendar();
+            });
+            
+            document.getElementById('nextMonth').addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                renderCalendar();
+            });
+            
+            // Shift type selection
+            document.querySelectorAll('.shift-type-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    selectedShift = this.dataset.shift;
+                    
+                    // Update UI
+                    document.querySelectorAll('.shift-type-card').forEach(c => {
+                        c.classList.remove('border-blue-500', 'border-orange-500', 'border-green-500');
+                    });
+                    
+                    if (selectedShift === 'night') this.classList.add('border-blue-500');
+                    if (selectedShift === 'morning') this.classList.add('border-orange-500');
+                    if (selectedShift === 'late') this.classList.add('border-green-500');
+                    
+                    // Enable assignment button
+                    document.getElementById('manualAssignBtn').disabled = false;
+                });
+            });
+            
+            // Shift tabs
+            document.querySelectorAll('.shift-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const shift = this.dataset.shift;
+                    
+                    // Update active tab
+                    document.querySelectorAll('.shift-tab').forEach(t => {
+                        t.classList.remove('active', 'bg-blue-100', 'text-blue-800');
+                    });
+                    this.classList.add('active', 'bg-blue-100', 'text-blue-800');
+                    
+                    // Filter schedule
+                    renderScheduleOverview(shift);
+                });
+            });
+            
+            // Manual assignment button
+            document.getElementById('manualAssignBtn').addEventListener('click', assignSelectedEmployees);
+        }
+        
+        function renderEmployeeList() {
+            const container = document.getElementById('employeesList');
+            container.innerHTML = '';
+            
+            employees.forEach(employee => {
+                const card = document.createElement('div');
+                card.className = `employee-card bg-white border rounded-lg p-4 flex items-center justify-between ${
+                    employee.status === 'on leave' ? 'opacity-50' : ''
+                }`;
+                card.dataset.id = employee.id;
+                
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gray-200 border-2 border-dashed rounded-xl"></div>
+                        <div>
+                            <h3 class="font-semibold">${employee.name}</h3>
+                            <p class="text-sm text-gray-600">${employee.position}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="text-xs px-2 py-1 rounded-full ${
+                            employee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        }">
+                            ${employee.status}
+                        </div>
+                        <div class="flex gap-1">
+                            <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <div class="text-xs">${employee.shifts.night}</div>
+                            <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                            <div class="text-xs">${employee.shifts.morning}</div>
+                            <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                            <div class="text-xs">${employee.shifts.late}</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add selection ability
+                card.addEventListener('click', function() {
+                    if (employee.status !== 'active') return;
+                    this.classList.toggle('ring-2');
+                    this.classList.toggle('ring-blue-500');
+                });
+                
+                container.appendChild(card);
+            });
+        }
+        
+        function renderEmployeeStats() {
+            const container = document.getElementById('employeeStats');
+            container.innerHTML = '';
+            
+            employees.forEach(employee => {
+                if (employee.status !== 'active') return;
+                
+                const totalShifts = employee.shifts.night + employee.shifts.morning + employee.shifts.late;
+                
+                const card = document.createElement('div');
+                card.className = 'employee-stat-card bg-white rounded-lg shadow p-4';
+                card.innerHTML = `
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-12 h-12 bg-gray-200 border-2 border-dashed rounded-xl"></div>
+                        <div>
+                            <h3 class="font-semibold">${employee.name}</h3>
+                            <p class="text-sm text-gray-600">${employee.position}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span>Night Shifts</span>
+                            <span class="font-medium">${employee.shifts.night}</span>
+                        </div>
+                        <div class="stats-bar bg-blue-100">
+                            <div class="stats-bar bg-blue-500" style="width: ${(employee.shifts.night/10)*100}%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between text-sm">
+                            <span>Morning Shifts</span>
+                            <span class="font-medium">${employee.shifts.morning}</span>
+                        </div>
+                        <div class="stats-bar bg-yellow-100">
+                            <div class="stats-bar bg-yellow-500" style="width: ${(employee.shifts.morning/10)*100}%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between text-sm">
+                            <span>Late Shifts</span>
+                            <span class="font-medium">${employee.shifts.late}</span>
+                        </div>
+                        <div class="stats-bar bg-green-100">
+                            <div class="stats-bar bg-green-500" style="width: ${(employee.shifts.late/10)*100}%"></div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        function updateShiftCounts() {
+            // Calculate counts
+            const nightCount = employees.reduce((sum, emp) => sum + emp.shifts.night, 0);
+            const morningCount = employees.reduce((sum, emp) => sum + emp.shifts.morning, 0);
+            const lateCount = employees.reduce((sum, emp) => sum + emp.shifts.late, 0);
+            
+            // Update UI
+            document.getElementById('nightCount').textContent = `${nightCount} assigned`;
+            document.getElementById('morningCount').textContent = `${morningCount} assigned`;
+            document.getElementById('lateCount').textContent = `${lateCount} assigned`;
+            
+            // Update summary stats
+            const activeEmployees = employees.filter(emp => emp.status === 'active').length;
+            const totalAssignments = nightCount + morningCount + lateCount;
+            const avgShifts = activeEmployees > 0 ? (totalAssignments / activeEmployees).toFixed(1) : 0;
+            
+            document.getElementById('totalEmployees').textContent = activeEmployees;
+            document.getElementById('totalAssignments').textContent = totalAssignments;
+            document.getElementById('avgShifts').textContent = avgShifts;
+        }
+        
+        function assignSelectedEmployees() {
+            if (!selectedShift) {
+                showNotification('Please select a shift type first', 'error');
+                return;
+            }
+            
+            if (!startDate || !endDate) {
+                showNotification('Please select a date range first', 'error');
+                return;
+            }
+            
+            const selectedEmployees = document.querySelectorAll('.employee-card.ring-2');
+            if (selectedEmployees.length === 0) {
+                showNotification('Please select at least one employee', 'error');
+                return;
+            }
+            
+            // Assign shifts to selected employees
+            selectedEmployees.forEach(card => {
+                const employeeId = card.dataset.id;
+                const employee = employees.find(emp => emp.id === employeeId);
+                
+                if (employee && employee.status === 'active') {
+                    // Add one shift per day in the range
+                    employee.shifts[selectedShift] += selectedDates.length;
+                }
+            });
+            
+            // Update UI
+            renderEmployeeList();
+            renderEmployeeStats();
+            updateShiftCounts();
+            renderScheduleOverview();
+            updateCalendarShiftIndicators();
+            
+            // Show success notification
+            showNotification(`Assigned ${selectedEmployees.length} employees to ${selectedDates.length} ${selectedShift} shifts`, 'success');
+            
+            // Clear selection
+            selectedEmployees.forEach(card => {
+                card.classList.remove('ring-2', 'ring-blue-500');
+            });
+        }
+        
+        function renderScheduleOverview(shiftType = 'night') {
+            const container = document.getElementById('scheduleContent');
+            container.innerHTML = '';
+            
+            // Get employees assigned to this shift
+            const assignedEmployees = employees.filter(emp => 
+                emp.status === 'active' && emp.shifts[shiftType] > 0
+            );
+            
+            if (assignedEmployees.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-user-clock text-3xl mb-2"></i>
+                        <p>No employees assigned to this shift</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort by most shifts
+            assignedEmployees.sort((a, b) => b.shifts[shiftType] - a.shifts[shiftType]);
+            
+            // Display employees
+            assignedEmployees.forEach(employee => {
+                const item = document.createElement('div');
+                item.className = 'schedule-item bg-gray-50 rounded-lg p-4 flex items-center justify-between';
+                
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gray-200 border-2 border-dashed rounded-xl"></div>
+                        <div>
+                            <h3 class="font-semibold">${employee.name}</h3>
+                            <p class="text-sm text-gray-600">${employee.position}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="text-lg font-bold ${
+                            shiftType === 'night' ? 'text-blue-600' : 
+                            shiftType === 'morning' ? 'text-yellow-600' : 'text-green-600'
+                        }">
+                            ${employee.shifts[shiftType]} shifts
+                        </div>
+                        <div class="text-xs px-3 py-1 rounded-full bg-white border">
+                            ${shiftType === 'night' ? '22:30-06:30' : 
+                              shiftType === 'morning' ? '06:30-14:30' : '14:30-22:30'}
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(item);
+            });
+        }
+        
+        function applyDateRange() {
+            const startInput = document.getElementById('startDate').value;
+            const endInput = document.getElementById('endDate').value;
+            
+            if (!startInput || !endInput) {
+                showNotification('Please select both start and end dates', 'error');
+                return;
+            }
+            
+            startDate = new Date(startInput);
+            endDate = new Date(endInput);
+            
+            if (startDate > endDate) {
+                showNotification('End date must be after start date', 'error');
+                return;
+            }
+            
+            // Reset and highlight new range
+            resetCalendarSelection();
+            highlightSelectedRange();
+            
+            // Update selected range display
+            document.getElementById('rangeText').textContent = 
+                `${formatDate(startDate)} to ${formatDate(endDate)} (${selectedDates.length} days)`;
+            
+            showNotification('Date range applied successfully', 'success');
+        }
+        
+        function exportData() {
+            showNotification('Data exported successfully', 'success');
+        }
+        
+        function generateScheduleReport() {
+            showNotification('Schedule report generated', 'success');
+        }
+        
+        function resetAllData() {
+            if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
+                // Reset employee shifts
+                employees.forEach(emp => {
+                    emp.shifts.night = 0;
+                    emp.shifts.morning = 0;
+                    emp.shifts.late = 0;
+                });
+                
+                // Reset UI
+                renderEmployeeList();
+                renderEmployeeStats();
+                updateShiftCounts();
+                renderScheduleOverview();
+                updateCalendarShiftIndicators();
+                
+                // Reset date selection
+                startDate = null;
+                endDate = null;
+                selectedDates = [];
+                resetCalendarSelection();
+                document.getElementById('rangeText').textContent = 'No dates selected';
+                
+                showNotification('All data has been reset', 'success');
+            }
+        }
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', initializeUI);
+    </script>
+</body>
+</html>
