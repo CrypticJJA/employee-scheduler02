@@ -6,16 +6,16 @@
     <title>Multi-Shift Scheduling System</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    
     <style>
-        .shift-night { background: linear-gradient(135deg, #1e3a8a, #3730a3); }
-        .shift-morning { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .shift-late { background: linear-gradient(135deg, #059669, #047857); }
+        :root {
+            --night-shift: linear-gradient(135deg, #1e3a8a, #3730a3);
+            --morning-shift: linear-gradient(135deg, #f59e0b, #d97706);
+            --late-shift: linear-gradient(135deg, #059669, #047857);
+        }
+        
+        .shift-night { background: var(--night-shift); }
+        .shift-morning { background: var(--morning-shift); }
+        .shift-late { background: var(--late-shift); }
         .glass-effect { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1); }
         .animate-fade-in { animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -169,10 +169,277 @@
         .employee-card.active .employee-details {
             display: block;
         }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            animation: modalFadeIn 0.3s ease-out;
+        }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+        
+        .avatar-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: #e5e7eb;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .avatar-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .color-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        .employee-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .employee-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c5c5c5;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* New employee form */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            background-color: white;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1em;
+        }
+        
+        .form-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        
+        .color-option {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+        }
+        
+        .color-option.selected {
+            border-color: #1e40af;
+            transform: scale(1.2);
+        }
+        
+        .color-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        .shift-color-preview {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
     <div id="notificationArea" class="fixed top-4 right-4 z-50 w-80"></div>
+
+    <!-- Employee Management Modal -->
+    <div id="employeeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="text-xl font-bold text-gray-800">Add New Employee</h3>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Employee Name</label>
+                    <input type="text" id="employeeName" class="form-input" placeholder="Enter full name">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Position</label>
+                    <input type="text" id="employeePosition" class="form-input" placeholder="Enter position">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select id="employeeStatus" class="form-select">
+                        <option value="active">Active</option>
+                        <option value="on leave">On Leave</option>
+                        <option value="vacation">Vacation</option>
+                        <option value="sick">Sick Leave</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Shift Availability</label>
+                    <div class="grid grid-cols-1 gap-3">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" class="mr-3" id="nightAvailable" checked>
+                            <div class="shift-color-preview" style="background: #3730a3;"></div>
+                            Night Shift (22:30 - 06:30)
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" class="mr-3" id="morningAvailable" checked>
+                            <div class="shift-color-preview" style="background: #f59e0b;"></div>
+                            Morning Shift (06:30 - 14:30)
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" class="mr-3" id="lateAvailable" checked>
+                            <div class="shift-color-preview" style="background: #059669;"></div>
+                            Late Shift (14:30 - 22:30)
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Employee Color</label>
+                    <div class="color-options">
+                        <div class="color-option selected" style="background-color: #3b82f6;" data-color="#3b82f6"></div>
+                        <div class="color-option" style="background-color: #ef4444;" data-color="#ef4444"></div>
+                        <div class="color-option" style="background-color: #10b981;" data-color="#10b981"></div>
+                        <div class="color-option" style="background-color: #f59e0b;" data-color="#f59e0b"></div>
+                        <div class="color-option" style="background-color: #8b5cf6;" data-color="#8b5cf6"></div>
+                    </div>
+                    <input type="hidden" id="employeeColor" value="#3b82f6">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelEmployee" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                    Cancel
+                </button>
+                <button id="saveEmployee" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    Save Employee
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div class="max-w-7xl mx-auto p-4 sm:p-6">
         <!-- Header -->
@@ -188,22 +455,19 @@
             <button onclick="exportData()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center">
                 <i class="fas fa-chart-bar mr-2"></i> Export Data
             </button>
-            <label class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium cursor-pointer flex items-center">
+            <button onclick="document.getElementById('importFile').click()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium flex items-center">
                 <i class="fas fa-file-import mr-2"></i> Import Data
-                <input type="file" accept=".json" class="hidden">
-            </label>
+            </button>
+            <input type="file" id="importFile" accept=".json" class="hidden">
             <button onclick="generateScheduleReport()" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors text-sm font-medium flex items-center">
                 <i class="fas fa-file-alt mr-2"></i> Generate Report
             </button>
             <button onclick="resetAllData()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm font-medium flex items-center">
                 <i class="fas fa-sync-alt mr-2"></i> Reset All
             </button>
-        </div>
-
-        <!-- Firebase Connection Status -->
-        <div id="firebaseStatus" class="mb-6 bg-yellow-100 text-yellow-800 p-4 rounded-lg flex items-center">
-            <i class="fas fa-circle-notch fa-spin mr-2"></i>
-            Connecting to Firebase...
+            <button id="addEmployeeBtn" class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition-colors text-sm font-medium flex items-center">
+                <i class="fas fa-user-plus mr-2"></i> Add Employee
+            </button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -384,24 +648,73 @@
     </div>
 
     <script>
-        // Firebase configuration - replace with your own config
-        const firebaseConfig = {
-            apiKey: "AIzaSyC4R6MK7a8n6WQdR9q8V7s7V7dXgY7Y7Y7",
-            authDomain: "shift-scheduler-demo.firebaseapp.com",
-            projectId: "shift-scheduler-demo",
-            storageBucket: "shift-scheduler-demo.appspot.com",
-            messagingSenderId: "1234567890",
-            appId: "1:1234567890:web:abc123def456"
-        };
-
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        // Initialize with sample employees if none exist
+        let employees = JSON.parse(localStorage.getItem('employees')) || [
+            { 
+                id: 'e1', 
+                name: 'John Smith', 
+                position: 'Nurse', 
+                shifts: { night: 0, morning: 0, late: 0 }, 
+                status: 'active',
+                color: '#3b82f6',
+                availability: { night: true, morning: true, late: true }
+            },
+            { 
+                id: 'e2', 
+                name: 'Sarah Johnson', 
+                position: 'Doctor', 
+                shifts: { night: 0, morning: 0, late: 0 }, 
+                status: 'active',
+                color: '#ef4444',
+                availability: { night: true, morning: true, late: true }
+            },
+            { 
+                id: 'e3', 
+                name: 'Michael Brown', 
+                position: 'Technician', 
+                shifts: { night: 0, morning: 0, late: 0 }, 
+                status: 'active',
+                color: '#10b981',
+                availability: { night: true, morning: true, late: true }
+            },
+            { 
+                id: 'e4', 
+                name: 'Emily Davis', 
+                position: 'Nurse', 
+                shifts: { night: 0, morning: 0, late: 0 }, 
+                status: 'active',
+                color: '#f59e0b',
+                availability: { night: true, morning: true, late: true }
+            },
+            { 
+                id: 'e5', 
+                name: 'David Wilson', 
+                position: 'Receptionist', 
+                shifts: { night: 0, morning: 0, late: 0 }, 
+                status: 'active',
+                color: '#8b5cf6',
+                availability: { night: true, morning: true, late: true }
+            },
+            { 
+                id: 'e6', 
+                name: 'Jennifer Miller', 
+                position: 'Nurse', 
+                shifts: { night: 0, morning: 0, late: 0 }, 
+                status: 'on leave',
+                color: '#ec4899',
+                availability: { night: false, morning: true, late: false }
+            }
+        ];
         
-        // Update Firebase status
-        document.getElementById('firebaseStatus').innerHTML = '<i class="fas fa-check-circle text-green-500 mr-2"></i> Connected to Firebase';
-        document.getElementById('firebaseStatus').classList.remove('bg-yellow-100', 'text-yellow-800');
-        document.getElementById('firebaseStatus').classList.add('bg-green-100', 'text-green-800');
+        // Save employees to localStorage
+        function saveEmployees() {
+            localStorage.setItem('employees', JSON.stringify(employees));
+        }
+        
+        // Generate a unique ID
+        function generateId() {
+            return 'e' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        }
         
         // Notification system
         function showNotification(message, type = 'info') {
@@ -438,7 +751,6 @@
         let selectedShift = '';
         let startDate = null;
         let endDate = null;
-// ... (previous script content) ...
 
         function renderCalendar() {
             const calendarDays = document.getElementById('calendarDays');
@@ -559,8 +871,7 @@
         }
         
         function updateCalendarShiftIndicators() {
-            // This would normally fetch data from Firestore
-            // For demo, we'll add random indicators
+            // This would normally fetch data from storage
             document.querySelectorAll('.calendar-day:not(.disabled)').forEach(day => {
                 const indicators = day.querySelector('.flex.justify-center');
                 indicators.innerHTML = '';
@@ -578,16 +889,6 @@
                 });
             });
         }
-        
-        // Employee data
-        const employees = [
-            { id: 'e1', name: 'John Smith', position: 'Nurse', shifts: { night: 0, morning: 0, late: 0 }, status: 'active' },
-            { id: 'e2', name: 'Sarah Johnson', position: 'Doctor', shifts: { night: 0, morning: 0, late: 0 }, status: 'active' },
-            { id: 'e3', name: 'Michael Brown', position: 'Technician', shifts: { night: 0, morning: 0, late: 0 }, status: 'active' },
-            { id: 'e4', name: 'Emily Davis', position: 'Nurse', shifts: { night: 0, morning: 0, late: 0 }, status: 'active' },
-            { id: 'e5', name: 'David Wilson', position: 'Receptionist', shifts: { night: 0, morning: 0, late: 0 }, status: 'active' },
-            { id: 'e6', name: 'Jennifer Miller', position: 'Nurse', shifts: { night: 0, morning: 0, late: 0 }, status: 'on leave' }
-        ];
         
         // Initialize UI
         function initializeUI() {
@@ -653,6 +954,35 @@
             
             // Manual assignment button
             document.getElementById('manualAssignBtn').addEventListener('click', assignSelectedEmployees);
+            
+            // Employee management modal
+            document.getElementById('addEmployeeBtn').addEventListener('click', () => {
+                document.getElementById('employeeModal').style.display = 'flex';
+            });
+            
+            document.getElementById('closeModal').addEventListener('click', () => {
+                document.getElementById('employeeModal').style.display = 'none';
+            });
+            
+            document.getElementById('cancelEmployee').addEventListener('click', () => {
+                document.getElementById('employeeModal').style.display = 'none';
+            });
+            
+            document.getElementById('saveEmployee').addEventListener('click', saveNewEmployee);
+            
+            // Color selection
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.color-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    this.classList.add('selected');
+                    document.getElementById('employeeColor').value = this.dataset.color;
+                });
+            });
+            
+            // Import data
+            document.getElementById('importFile').addEventListener('change', importData);
         }
         
         function renderEmployeeList() {
@@ -662,13 +992,19 @@
             employees.forEach(employee => {
                 const card = document.createElement('div');
                 card.className = `employee-card bg-white border rounded-lg p-4 flex items-center justify-between ${
-                    employee.status === 'on leave' ? 'opacity-50' : ''
+                    employee.status !== 'active' ? 'opacity-50' : ''
                 }`;
                 card.dataset.id = employee.id;
                 
+                // Generate initials for avatar
+                const names = employee.name.split(' ');
+                const initials = names[0].charAt(0) + (names[1] ? names[1].charAt(0) : names[0].charAt(1));
+                
                 card.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-gray-200 border-2 border-dashed rounded-xl"></div>
+                        <div class="employee-avatar" style="background-color: ${employee.color};">
+                            ${initials}
+                        </div>
                         <div>
                             <h3 class="font-semibold">${employee.name}</h3>
                             <p class="text-sm text-gray-600">${employee.position}</p>
@@ -676,7 +1012,9 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <div class="text-xs px-2 py-1 rounded-full ${
-                            employee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                            employee.status === 'active' ? 'bg-green-100 text-green-800' : 
+                            employee.status === 'on leave' ? 'bg-yellow-100 text-yellow-800' : 
+                            employee.status === 'vacation' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
                         }">
                             ${employee.status}
                         </div>
@@ -711,11 +1049,17 @@
                 
                 const totalShifts = employee.shifts.night + employee.shifts.morning + employee.shifts.late;
                 
+                // Generate initials for avatar
+                const names = employee.name.split(' ');
+                const initials = names[0].charAt(0) + (names[1] ? names[1].charAt(0) : names[0].charAt(1));
+                
                 const card = document.createElement('div');
                 card.className = 'employee-stat-card bg-white rounded-lg shadow p-4';
                 card.innerHTML = `
                     <div class="flex items-center gap-3 mb-3">
-                        <div class="w-12 h-12 bg-gray-200 border-2 border-dashed rounded-xl"></div>
+                        <div class="employee-avatar" style="background-color: ${employee.color};">
+                            ${initials}
+                        </div>
                         <div>
                             <h3 class="font-semibold">${employee.name}</h3>
                             <p class="text-sm text-gray-600">${employee.position}</p>
@@ -727,7 +1071,7 @@
                             <span class="font-medium">${employee.shifts.night}</span>
                         </div>
                         <div class="stats-bar bg-blue-100">
-                            <div class="stats-bar bg-blue-500" style="width: ${(employee.shifts.night/10)*100}%"></div>
+                            <div class="stats-bar" style="background-color: ${employee.color}; width: ${(employee.shifts.night/10)*100}%"></div>
                         </div>
                         
                         <div class="flex justify-between text-sm">
@@ -735,7 +1079,7 @@
                             <span class="font-medium">${employee.shifts.morning}</span>
                         </div>
                         <div class="stats-bar bg-yellow-100">
-                            <div class="stats-bar bg-yellow-500" style="width: ${(employee.shifts.morning/10)*100}%"></div>
+                            <div class="stats-bar" style="background-color: ${employee.color}; width: ${(employee.shifts.morning/10)*100}%"></div>
                         </div>
                         
                         <div class="flex justify-between text-sm">
@@ -743,7 +1087,7 @@
                             <span class="font-medium">${employee.shifts.late}</span>
                         </div>
                         <div class="stats-bar bg-green-100">
-                            <div class="stats-bar bg-green-500" style="width: ${(employee.shifts.late/10)*100}%"></div>
+                            <div class="stats-bar" style="background-color: ${employee.color}; width: ${(employee.shifts.late/10)*100}%"></div>
                         </div>
                     </div>
                 `;
@@ -795,7 +1139,7 @@
                 const employeeId = card.dataset.id;
                 const employee = employees.find(emp => emp.id === employeeId);
                 
-                if (employee && employee.status === 'active') {
+                if (employee && employee.status === 'active' && employee.availability[selectedShift]) {
                     // Add one shift per day in the range
                     employee.shifts[selectedShift] += selectedDates.length;
                 }
@@ -807,6 +1151,7 @@
             updateShiftCounts();
             renderScheduleOverview();
             updateCalendarShiftIndicators();
+            saveEmployees();
             
             // Show success notification
             showNotification(`Assigned ${selectedEmployees.length} employees to ${selectedDates.length} ${selectedShift} shifts`, 'success');
@@ -841,12 +1186,18 @@
             
             // Display employees
             assignedEmployees.forEach(employee => {
+                // Generate initials for avatar
+                const names = employee.name.split(' ');
+                const initials = names[0].charAt(0) + (names[1] ? names[1].charAt(0) : names[0].charAt(1));
+                
                 const item = document.createElement('div');
                 item.className = 'schedule-item bg-gray-50 rounded-lg p-4 flex items-center justify-between';
                 
                 item.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-gray-200 border-2 border-dashed rounded-xl"></div>
+                        <div class="employee-avatar" style="background-color: ${employee.color};">
+                            ${initials}
+                        </div>
                         <div>
                             <h3 class="font-semibold">${employee.name}</h3>
                             <p class="text-sm text-gray-600">${employee.position}</p>
@@ -898,8 +1249,113 @@
             showNotification('Date range applied successfully', 'success');
         }
         
+        function saveNewEmployee() {
+            const name = document.getElementById('employeeName').value.trim();
+            const position = document.getElementById('employeePosition').value.trim();
+            const status = document.getElementById('employeeStatus').value;
+            const color = document.getElementById('employeeColor').value;
+            
+            if (!name) {
+                showNotification('Please enter employee name', 'error');
+                return;
+            }
+            
+            if (!position) {
+                showNotification('Please enter employee position', 'error');
+                return;
+            }
+            
+            const newEmployee = {
+                id: generateId(),
+                name,
+                position,
+                status,
+                color,
+                shifts: { night: 0, morning: 0, late: 0 },
+                availability: {
+                    night: document.getElementById('nightAvailable').checked,
+                    morning: document.getElementById('morningAvailable').checked,
+                    late: document.getElementById('lateAvailable').checked
+                }
+            };
+            
+            employees.push(newEmployee);
+            saveEmployees();
+            
+            // Update UI
+            renderEmployeeList();
+            renderEmployeeStats();
+            updateShiftCounts();
+            
+            // Close modal
+            document.getElementById('employeeModal').style.display = 'none';
+            
+            // Clear form
+            document.getElementById('employeeName').value = '';
+            document.getElementById('employeePosition').value = '';
+            document.getElementById('employeeStatus').value = 'active';
+            document.getElementById('employeeColor').value = '#3b82f6';
+            document.getElementById('nightAvailable').checked = true;
+            document.getElementById('morningAvailable').checked = true;
+            document.getElementById('lateAvailable').checked = true;
+            
+            // Reset color selection
+            document.querySelectorAll('.color-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.querySelector('.color-option[data-color="#3b82f6"]').classList.add('selected');
+            
+            showNotification(`${name} added to the team!`, 'success');
+        }
+        
         function exportData() {
+            const dataStr = JSON.stringify(employees);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = 'employee-data.json';
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            document.body.appendChild(linkElement);
+            
+            linkElement.click();
+            document.body.removeChild(linkElement);
+            
             showNotification('Data exported successfully', 'success');
+        }
+        
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (!Array.isArray(importedData)) {
+                        throw new Error('Invalid data format');
+                    }
+                    
+                    employees = importedData;
+                    saveEmployees();
+                    
+                    // Update UI
+                    renderEmployeeList();
+                    renderEmployeeStats();
+                    updateShiftCounts();
+                    renderScheduleOverview();
+                    
+                    showNotification('Data imported successfully', 'success');
+                } catch (error) {
+                    showNotification('Failed to import data: ' + error.message, 'error');
+                }
+                
+                // Reset file input
+                event.target.value = '';
+            };
+            
+            reader.readAsText(file);
         }
         
         function generateScheduleReport() {
@@ -914,6 +1370,8 @@
                     emp.shifts.morning = 0;
                     emp.shifts.late = 0;
                 });
+                
+                saveEmployees();
                 
                 // Reset UI
                 renderEmployeeList();
